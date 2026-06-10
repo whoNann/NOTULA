@@ -1,4 +1,4 @@
-export default function NoteCard({ title, snippet, time, icon, isActive, aiTag }) {
+export default function NoteCard({ title, snippet, time, icon, isActive, aiTag, isFavorite, onToggleFavorite, onToggleArchive, isArchived }) {
   return (
     <div
       className={`surface-level-2 rounded-xl p-6 flex flex-col h-56 hover:shadow-xl transition-all cursor-pointer group relative overflow-hidden ${
@@ -6,14 +6,45 @@ export default function NoteCard({ title, snippet, time, icon, isActive, aiTag }
       }`}
     >
       {/* Hover Actions */}
-      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
-        <button className="p-1.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors">
-          <span className="material-symbols-outlined text-sm">edit</span>
-        </button>
-        <button className="p-1.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-error transition-colors">
-          <span className="material-symbols-outlined text-sm">delete</span>
-        </button>
+      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-1.5 z-10">
+        {onToggleFavorite && (
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleFavorite(); }}
+            className="p-1.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-primary transition-colors cursor-pointer border-none bg-surface-container-high/90"
+            title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
+          >
+            <span
+              className={`material-symbols-outlined text-sm ${isFavorite ? 'text-primary' : ''}`}
+              style={isFavorite ? { fontVariationSettings: "'FILL' 1" } : undefined}
+            >
+              star
+            </span>
+          </button>
+        )}
+        {onToggleArchive && (
+          <button
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onToggleArchive(); }}
+            className="p-1.5 rounded-lg bg-surface-container-high text-on-surface-variant hover:text-tertiary transition-colors cursor-pointer border-none bg-surface-container-high/90"
+            title={isArchived ? 'Unarchive' : 'Archive'}
+          >
+            <span className="material-symbols-outlined text-sm">
+              {isArchived ? 'unarchive' : 'archive'}
+            </span>
+          </button>
+        )}
       </div>
+
+      {/* Favorite indicator */}
+      {isFavorite && (
+        <div className="absolute top-4 right-4 group-hover:opacity-0 transition-opacity">
+          <span
+            className="material-symbols-outlined text-primary text-sm"
+            style={{ fontVariationSettings: "'FILL' 1" }}
+          >
+            star
+          </span>
+        </div>
+      )}
 
       {/* Title */}
       <div className="flex items-center space-x-3 mb-4">

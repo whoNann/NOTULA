@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getNotes } from '../utils/notesStore.js'
+import { getSettings, updateSetting, applyTheme } from '../utils/settingsStore.js'
 
 export default function ProfilePage() {
   const navigate = useNavigate()
   const [stats, setStats] = useState({ noteCount: 0, wordCount: 0, charCount: 0 })
+  const [settings, setSettings] = useState(getSettings())
   const [userName] = useState('Alex')
   const [userEmail] = useState('alex@notula.app')
 
@@ -18,6 +20,17 @@ export default function ProfilePage() {
     setStats({ noteCount: notes.length, wordCount: totalWords, charCount: totalChars })
   }, [])
 
+  const handleToggle = (key) => {
+    const newValue = !settings[key]
+    const newSettings = updateSetting(key, newValue)
+    setSettings(newSettings)
+
+    // Apply theme immediately if dark mode changed
+    if (key === 'darkMode') {
+      applyTheme(newValue)
+    }
+  }
+
   const handleLogout = () => {
     localStorage.removeItem('notula_user')
     navigate('/login')
@@ -27,6 +40,27 @@ export default function ProfilePage() {
     { icon: 'description', label: 'Total Notes', value: stats.noteCount, color: 'text-primary' },
     { icon: 'text_fields', label: 'Total Words', value: stats.wordCount.toLocaleString(), color: 'text-tertiary' },
     { icon: 'keyboard', label: 'Characters', value: stats.charCount.toLocaleString(), color: 'text-secondary' },
+  ]
+
+  const settingsItems = [
+    {
+      key: 'darkMode',
+      icon: settings.darkMode ? 'dark_mode' : 'light_mode',
+      title: settings.darkMode ? 'Dark Mode' : 'Light Mode',
+      desc: settings.darkMode ? 'Dark interface — optimized for focus' : 'Light interface — better for bright environments',
+    },
+    {
+      key: 'autoSave',
+      icon: 'save',
+      title: 'Auto-Save',
+      desc: settings.autoSave ? 'Notes save automatically as you type' : 'You need to save manually with the save button',
+    },
+    {
+      key: 'aiFeatures',
+      icon: 'auto_awesome',
+      title: 'AI Features',
+      desc: settings.aiFeatures ? 'Summarize, grammar check & more are enabled' : 'AI features are currently disabled',
+    },
   ]
 
   return (
@@ -66,47 +100,38 @@ export default function ProfilePage() {
         <section>
           <h3 className="text-headline-sm text-on-surface mb-4">Settings</h3>
           <div className="surface-level-2 rounded-xl overflow-hidden">
-            {/* Theme */}
-            <div className="flex items-center justify-between p-4 border-b border-outline-variant/20">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-on-surface-variant">dark_mode</span>
-                <div>
-                  <p className="text-body-md text-on-surface">Dark Mode</p>
-                  <p className="text-label-md text-on-surface-variant">Always on — built for focus</p>
+            {settingsItems.map((item, i) => (
+              <div
+                key={item.key}
+                className={`flex items-center justify-between p-4 ${i < settingsItems.length - 1 ? 'border-b border-outline-variant/20' : ''}`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="material-symbols-outlined text-on-surface-variant">{item.icon}</span>
+                  <div>
+                    <p className="text-body-md text-on-surface">{item.title}</p>
+                    <p className="text-label-md text-on-surface-variant">{item.desc}</p>
+                  </div>
                 </div>
+                {/* Toggle Switch */}
+                <button
+                  onClick={() => handleToggle(item.key)}
+                  className={`relative w-12 h-7 rounded-full transition-colors cursor-pointer border-none flex-shrink-0 ${
+                    settings[item.key] ? 'bg-primary' : 'bg-outline-variant'
+                  }`}
+                  role="switch"
+                  aria-checked={settings[item.key]}
+                  aria-label={`Toggle ${item.title}`}
+                >
+                  <div
+                    className={`absolute top-1 w-5 h-5 rounded-full shadow-sm transition-all ${
+                      settings[item.key]
+                        ? 'left-6 bg-on-primary'
+                        : 'left-1 bg-surface'
+                    }`}
+                  ></div>
+                </button>
               </div>
-              <div className="w-12 h-7 rounded-full bg-primary flex items-center px-1">
-                <div className="w-5 h-5 rounded-full bg-on-primary ml-auto shadow-sm"></div>
-              </div>
-            </div>
-
-            {/* Auto-save */}
-            <div className="flex items-center justify-between p-4 border-b border-outline-variant/20">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-on-surface-variant">save</span>
-                <div>
-                  <p className="text-body-md text-on-surface">Auto-Save</p>
-                  <p className="text-label-md text-on-surface-variant">Notes save automatically as you type</p>
-                </div>
-              </div>
-              <div className="w-12 h-7 rounded-full bg-primary flex items-center px-1">
-                <div className="w-5 h-5 rounded-full bg-on-primary ml-auto shadow-sm"></div>
-              </div>
-            </div>
-
-            {/* AI Features */}
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-on-surface-variant">auto_awesome</span>
-                <div>
-                  <p className="text-body-md text-on-surface">AI Features</p>
-                  <p className="text-label-md text-on-surface-variant">Summarize, grammar check & more</p>
-                </div>
-              </div>
-              <div className="w-12 h-7 rounded-full bg-primary flex items-center px-1">
-                <div className="w-5 h-5 rounded-full bg-on-primary ml-auto shadow-sm"></div>
-              </div>
-            </div>
+            ))}
           </div>
         </section>
 

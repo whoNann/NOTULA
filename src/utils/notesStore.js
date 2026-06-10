@@ -4,20 +4,24 @@ const defaultNotes = [
   {
     id: '1',
     title: 'Product Roadmap Q3',
-    content: `# Product Roadmap Q3\n\nUpdate on the upcoming features for the next quarter.\n\n## Focus Areas\n- AI integrations and user onboarding flow improvements\n- Performance optimization across all modules\n- Mobile responsiveness enhancements\n\n> "Ship fast, iterate faster."\n\n## Timeline\n- **Week 1-2:** Research & prototyping\n- **Week 3-6:** Core development\n- **Week 7-8:** QA & polish`,
+    content: `# Product Roadmap Q3\n\nUpdate on the upcoming features for the next quarter.\n\n## Focus Areas\n- AI integrations and user onboarding flow improvements\n- Performance optimization across all modules\n- Mobile responsiveness enhancements\n\n> "Ship fast, iterate faster."\n\n## Timeline\n- *Week 1-2:* Research & prototyping\n- *Week 3-6:* Core development\n- *Week 7-8:* QA & polish`,
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
     aiTag: 'AI Summarized',
-    folder: 'all',
+    isFavorite: true,
+    isArchived: false,
+    notebook: 'Work',
   },
   {
     id: '2',
     title: 'Meeting Notes: Design Sync',
-    content: `# Meeting Notes: Design Sync\n\nDiscussed the new dark mode color palette.\n\n## Key Decisions\n- Agreed to shift towards cooler grays and deeper purples for the active states\n- Glassmorphism will be used exclusively for AI-driven features\n- Typography scale finalized: Inter for UI, JetBrains Mono for editor\n\n## Action Items\n- [ ] Update Figma tokens\n- [ ] Create component library in Storybook\n- [ ] Review with engineering team`,
+    content: `# Meeting Notes: Design Sync\n\nDiscussed the new dark mode color palette.\n\n## Key Decisions\n- Agreed to shift towards cooler grays and deeper purples for the active states\n- Glassmorphism will be used exclusively for AI-driven features\n- Typography scale finalized: Inter for UI, JetBrains Mono for editor\n\n## Action Items\n- Update Figma tokens\n- Create component library in Storybook\n- Review with engineering team`,
     createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
     aiTag: null,
-    folder: 'all',
+    isFavorite: false,
+    isArchived: false,
+    notebook: 'Work',
   },
   {
     id: '3',
@@ -26,7 +30,20 @@ const defaultNotes = [
     createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     updatedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
     aiTag: null,
-    folder: 'all',
+    isFavorite: true,
+    isArchived: false,
+    notebook: 'Personal',
+  },
+  {
+    id: '4',
+    title: 'Old Sprint Retrospective',
+    content: `# Sprint Retrospective - Sprint 12\n\n## What went well\n- Shipped the auth module on time\n- Good collaboration between frontend and backend\n\n## What didn't go well\n- Too many bugs in production\n- Deployment pipeline was flaky\n\n## Action items\n- Set up better E2E tests\n- Fix CI/CD pipeline`,
+    createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    updatedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+    aiTag: null,
+    isFavorite: false,
+    isArchived: true,
+    notebook: 'Work',
   },
 ]
 
@@ -37,7 +54,15 @@ function loadNotes() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultNotes))
       return [...defaultNotes]
     }
-    return JSON.parse(raw)
+    const notes = JSON.parse(raw)
+    // Migrate old notes that don't have new fields
+    const migrated = notes.map((n) => ({
+      isFavorite: false,
+      isArchived: false,
+      notebook: '',
+      ...n,
+    }))
+    return migrated
   } catch {
     return [...defaultNotes]
   }
@@ -48,16 +73,54 @@ function persist(notes) {
 }
 
 export function getNotes() {
-  return loadNotes().sort(
-    (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)
-  )
+  return loadNotes()
+    .filter((n) => !n.isArchived)
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
 }
 
 export function getNote(id) {
   return loadNotes().find((n) => n.id === id) || null
 }
 
-export function createNote() {
+export function getAllNotes() {
+  return loadNotes().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+}
+
+export function getFavorites() {
+  return loadNotes()
+    .filter((n) => n.isFavorite && !n.isArchived)
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+}
+
+export function getArchived() {
+  return loadNotes()
+    .filter((n) => n.isArchived)
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+}
+
+export function getNotebooks() {
+  const notes = loadNotes().filter((n) => !n.isArchived && n.notebook)
+  const notebooks = {}
+  notes.forEach((n) => {
+    if (!notebooks[n.notebook]) {
+      notebooks[n.notebook] = []
+    }
+    notebooks[n.notebook].push(n)
+  })
+  // Sort each notebook's notes
+  Object.keys(notebooks).forEach((key) => {
+    notebooks[key].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+  })
+  return notebooks
+}
+
+export function getNotesByNotebook(notebook) {
+  return loadNotes()
+    .filter((n) => n.notebook === notebook && !n.isArchived)
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+}
+
+export function createNote(notebook = '') {
   const notes = loadNotes()
   const note = {
     id: Date.now().toString(),
@@ -66,7 +129,9 @@ export function createNote() {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     aiTag: null,
-    folder: 'all',
+    isFavorite: false,
+    isArchived: false,
+    notebook: notebook,
   }
   notes.push(note)
   persist(notes)
@@ -88,14 +153,35 @@ export function deleteNote(id) {
   return notes
 }
 
+export function toggleFavorite(id) {
+  const notes = loadNotes()
+  const idx = notes.findIndex((n) => n.id === id)
+  if (idx === -1) return null
+  notes[idx].isFavorite = !notes[idx].isFavorite
+  persist(notes)
+  return notes[idx]
+}
+
+export function toggleArchive(id) {
+  const notes = loadNotes()
+  const idx = notes.findIndex((n) => n.id === id)
+  if (idx === -1) return null
+  notes[idx].isArchived = !notes[idx].isArchived
+  persist(notes)
+  return notes[idx]
+}
+
 export function searchNotes(query) {
   const q = query.toLowerCase().trim()
   if (!q) return getNotes()
-  return getNotes().filter(
-    (n) =>
-      n.title.toLowerCase().includes(q) ||
-      n.content.toLowerCase().includes(q)
-  )
+  return loadNotes()
+    .filter((n) => !n.isArchived)
+    .filter(
+      (n) =>
+        n.title.toLowerCase().includes(q) ||
+        n.content.toLowerCase().includes(q)
+    )
+    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
 }
 
 export function formatTimeAgo(dateStr) {
