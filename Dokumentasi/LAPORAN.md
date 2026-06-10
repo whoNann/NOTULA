@@ -179,42 +179,42 @@ Fitur AI diintegrasikan pada komponen [EditorPage.jsx](file:///d:/TUGAS%20ITTP/S
 
 1.  **Halaman Utama (Landing Page)**:
     Antarmuka awal yang memperkenalkan identitas Notula kepada pengunjung. Memuat informasi fitur unggulan dengan animasi visual modern, gradasi warna gelap-ungu, serta tombol aksi cepat untuk mendaftar atau masuk ke sistem.
-    ![Landing Page](../public/screenshots/landing_page_top.png)
+    ![Landing Page](../Frontend/public/screenshots/landing_page_top.png)
     *Gambar 4.1. Halaman Pemasaran Utama (Landing Page)*
 
 2.  **Section Fitur Unggulan**:
     Menampilkan visualisasi komprehensif mengenai kemampuan aplikasi seperti AI-powered insights, markdown editor, responsive design, dan lencana sertifikasi performa sistem.
-    ![Features Section](../public/screenshots/landing_page_features.png)
+    ![Features Section](../Frontend/public/screenshots/landing_page_features.png)
     *Gambar 4.2. Bagian Fitur pada Landing Page*
 
 3.  **Dashboard Utama (Dark Mode)**:
     Menampilkan ringkasan seluruh catatan aktif pengguna dalam bentuk grid kartu yang dinamis. Pengguna dapat mencari catatan secara instan melalui kolom pencarian, mengkategorikan catatan ke folder, menandai favorit, atau menghapus catatan.
-    ![Dashboard](../public/screenshots/dashboard_page.png)
+    ![Dashboard](../Frontend/public/screenshots/dashboard_page.png)
     *Gambar 4.3. Antarmuka Dashboard (Mode Gelap)*
 
 4.  **Editor Catatan (Markdown Editor & Toolbar)**:
     Halaman kerja utama pengguna yang dibekali bilah alat pemformatan teks Markdown secara instan. Menampilkan status penyimpanan dinamis (*auto-save*), penghitung statistik kata/karakter, pengelompokan folder, dan akses langsung ke menu AI.
-    ![Editor](../public/screenshots/editor_page.png)
+    ![Editor](../Frontend/public/screenshots/editor_page.png)
     *Gambar 4.4. Editor Catatan dengan Format Bold & Italic Terbaru*
 
 5.  **Modal Hasil Pemrosesan AI**:
     Tampilan dialog interaktif saat fitur AI dipicu. Menampilkan poin penting hasil ringkasan teks otomatis dari draf tulisan yang sedang diedit.
-    ![AI Modal](../public/screenshots/ai_summary_modal.png)
+    ![AI Modal](../Frontend/public/screenshots/ai_summary_modal.png)
     *Gambar 4.5. Antarmuka Dialog AI Summarize dengan Efek Cahaya Khusus*
 
 6.  **Halaman Profil & Pengaturan Sistem (Mode Gelap)**:
     Menyediakan rangkuman statistik penulisan pengguna (total catatan, jumlah kata, dan karakter yang ditulis) serta opsi penyesuaian fungsionalitas aplikasi.
-    ![Profile Dark](../public/screenshots/profile_dark_mode.png)
+    ![Profile Dark](../Frontend/public/screenshots/profile_dark_mode.png)
     *Gambar 4.6. Halaman Profil & Pengaturan (Mode Gelap)*
 
 7.  **Halaman Profil & Pengaturan (Mode Terang)**:
     Visualisasi antarmuka Notula ketika preferensi Mode Terang (*Light Mode*) diaktifkan secara dinamis. Skema warna berubah secara drastis untuk memberikan kenyamanan membaca di lingkungan yang terang.
-    ![Profile Light](../public/screenshots/profile_light_mode.png)
+    ![Profile Light](../Frontend/public/screenshots/profile_light_mode.png)
     *Gambar 4.7. Halaman Profil & Pengaturan (Mode Terang)*
 
 8.  **Dashboard Utama (Mode Terang)**:
     Tampilan kartu catatan dan bilah navigasi dengan tema warna terang yang rapi dan kontras tinggi.
-    ![Dashboard Light](../public/screenshots/dashboard_light_mode.png)
+    ![Dashboard Light](../Frontend/public/screenshots/dashboard_light_mode.png)
     *Gambar 4.8. Antarmuka Dashboard (Mode Terang)*
 
 ---
