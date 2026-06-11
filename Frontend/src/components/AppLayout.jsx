@@ -2,6 +2,7 @@ import { Outlet } from 'react-router-dom'
 import Sidebar from './Sidebar.jsx'
 import TopNav from './TopNav.jsx'
 import BottomNav from './BottomNav.jsx'
+import Toast from './Toast.jsx'
 
 export default function AppLayout() {
   return (
@@ -19,6 +20,9 @@ export default function AppLayout() {
 
       {/* Mobile Bottom Nav */}
       <BottomNav />
+
+      {/* Global Toast Notifications */}
+      <Toast />
     </div>
   )
 }

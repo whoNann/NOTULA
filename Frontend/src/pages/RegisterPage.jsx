@@ -1,10 +1,29 @@
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showMismatch, setShowMismatch] = useState(false)
+
+  const passwordsMatch = password === confirmPassword
+  const passwordLongEnough = password.length >= 6
+
+  const handleConfirmChange = (e) => {
+    setConfirmPassword(e.target.value)
+    // Show mismatch only after user has typed something in confirm field
+    if (e.target.value.length > 0) {
+      setShowMismatch(true)
+    }
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
+    if (!passwordsMatch) {
+      setShowMismatch(true)
+      return
+    }
     const formData = new FormData(e.target)
     const name = formData.get('fullName') || 'Alex'
     const email = formData.get('email') || 'alex@notula.app'
@@ -78,13 +97,26 @@ export default function RegisterPage() {
                   lock
                 </span>
                 <input 
-                  className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg pl-10 pr-4 py-3 text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all placeholder:text-outline/40" 
+                  className={`w-full bg-surface-container-lowest border rounded-lg pl-10 pr-4 py-3 text-body-md text-on-surface focus:outline-none focus:ring-1 transition-all placeholder:text-outline/40 ${
+                    password.length > 0 && !passwordLongEnough
+                      ? 'border-error focus:border-error focus:ring-error/30'
+                      : 'border-outline-variant/50 focus:border-primary focus:ring-primary/30'
+                  }`}
                   id="password" 
                   placeholder="••••••••" 
                   required 
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  minLength={6}
                 />
               </div>
+              {password.length > 0 && !passwordLongEnough && (
+                <p className="text-label-md text-error flex items-center gap-1 m-0">
+                  <span className="material-symbols-outlined text-[14px]">info</span>
+                  Password must be at least 6 characters
+                </p>
+              )}
             </div>
 
             {/* Confirm Password */}
@@ -95,20 +127,43 @@ export default function RegisterPage() {
                   lock_reset
                 </span>
                 <input 
-                  className="w-full bg-surface-container-lowest border border-outline-variant/50 rounded-lg pl-10 pr-4 py-3 text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-all placeholder:text-outline/40" 
+                  className={`w-full bg-surface-container-lowest border rounded-lg pl-10 pr-4 py-3 text-body-md text-on-surface focus:outline-none focus:ring-1 transition-all placeholder:text-outline/40 ${
+                    showMismatch && !passwordsMatch
+                      ? 'border-error focus:border-error focus:ring-error/30'
+                      : 'border-outline-variant/50 focus:border-primary focus:ring-primary/30'
+                  }`}
                   id="confirmPassword" 
                   placeholder="••••••••" 
                   required 
                   type="password"
+                  value={confirmPassword}
+                  onChange={handleConfirmChange}
                 />
               </div>
+              {showMismatch && !passwordsMatch && (
+                <p className="text-label-md text-error flex items-center gap-1 m-0">
+                  <span className="material-symbols-outlined text-[14px]">error</span>
+                  Passwords do not match
+                </p>
+              )}
+              {showMismatch && passwordsMatch && confirmPassword.length > 0 && (
+                <p className="text-label-md text-[#4caf50] flex items-center gap-1 m-0">
+                  <span className="material-symbols-outlined text-[14px]">check_circle</span>
+                  Passwords match
+                </p>
+              )}
             </div>
 
             {/* Actions */}
             <div className="pt-4">
               <button 
-                className="w-full bg-primary text-on-primary font-semibold text-label-md py-3.5 rounded-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2 cursor-pointer border-none" 
+                className={`w-full font-semibold text-label-md py-3.5 rounded-lg flex items-center justify-center gap-2 cursor-pointer border-none transition-all ${
+                  !passwordsMatch || !passwordLongEnough
+                    ? 'bg-outline-variant text-on-surface-variant/50 cursor-not-allowed'
+                    : 'bg-primary text-on-primary hover:opacity-90'
+                }`}
                 type="submit"
+                disabled={!passwordsMatch || !passwordLongEnough}
               >
                 <span>Register</span>
                 <span className="material-symbols-outlined text-[18px]">arrow_forward</span>

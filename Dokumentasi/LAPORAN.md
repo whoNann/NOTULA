@@ -27,10 +27,10 @@ Tujuan utama implementasi pada tahap ini adalah:
 
 ### Ruang Lingkup Implementasi
 Ruang lingkup sistem Notula pada iterasi ini meliputi:
-*   **Autentikasi Pengguna**: Simulasi halaman masuk (*Login*) dan pendaftaran (*Register*) yang menghubungkan pengguna ke Dashboard.
-*   **Manajemen Catatan (CRUD)**: Pembuatan, pembacaan, pembaruan konten secara real-time (*auto-save*), dan penghapusan catatan.
-*   **Sistem Navigasi & Tata Letak**: Sidebar terpadu pada desktop dan Bottom Navigation Bar pada tampilan perangkat mobile.
-*   **Fitur Pengayaan Catatan**: Format teks berbasis Markdown (Bold menggunakan `*text*`, Italic menggunakan `_text_`, H1, H2, Bullet List, dan Code Block).
+*   **Autentikasi Pengguna**: Simulasi halaman masuk (*Login*) dan pendaftaran (*Register*) dengan validasi kecocokan dan panjang sandi secara real-time yang menghubungkan pengguna ke Dashboard.
+*   **Manajemen Catatan (CRUD)**: Pembuatan, pembacaan, pembaruan konten secara real-time (*auto-save*), penghapusan catatan, serta umpan balik visual instan (*Toast notifications*).
+*   **Sistem Navigasi & Tata Letak**: Sidebar terpadu pada desktop, Bottom Navigation Bar, serta panel filter meluncur (*Bottom Sheet*) pada tampilan perangkat mobile.
+*   **Fitur Pengayaan Catatan**: Format teks berbasis Markdown (Bold menggunakan `*text*`, Italic menggunakan `_text_`, H1, H2, Bullet List, dan Code Block) dilengkapi pratinjau langsung (*Live Preview*) dan tombol pintas keyboard (*Keyboard Shortcuts*).
 *   **Pengaturan Sistem**: Pengaturan tema (*Light/Dark mode*), opsi aktif/nonaktif Auto-Save, serta opsi aktif/nonaktif modul fitur AI.
 
 ---
@@ -55,12 +55,13 @@ graph TD
 
 ### Komponen Frontend
 Komponen frontend dibangun menggunakan pendekatan berbasis komponen modular React:
-*   `AppLayout`: Wadah utama yang membungkus navigasi global (`Sidebar`, `TopNav`, `BottomNav`) dan mengatur area konten utama yang responsif.
+*   `AppLayout`: Wadah utama yang membungkus navigasi global (`Sidebar`, `TopNav`, `BottomNav`, `Toast`) dan mengatur area konten utama yang responsif.
 *   `Sidebar`: Komponen pengendali navigasi kiri pada layar lebar, menampilkan pintasan folder (*Notebooks*), Favorit, Arsip, serta daftar judul catatan.
-*   `TopNav`: Menyediakan akses pencarian cepat dan status penyimpanan di bagian atas.
-*   `BottomNav`: Menyediakan akses navigasi ergonomis di bagian bawah ketika aplikasi diakses melalui perangkat layar sentuh/ponsel.
-*   `NoteCard`: Kartu representasi visual catatan yang dinamis dengan indikator AI Tag, status favorit, dan tombol aksi cepat.
+*   `TopNav`: Menyediakan akses pencarian cepat (terintegrasi global dengan query URL) dan status penyimpanan di bagian atas.
+*   `BottomNav`: Menyediakan akses navigasi ergonomis di bagian bawah ketika aplikasi diakses melalui perangkat mobile, terintegrasi dengan filter *Bottom Sheet*.
+*   `NoteCard`: Kartu representasi visual catatan yang dinamis dengan efek hover glow (`.note-card-hover`), indikator AI Tag, status favorit, dan tombol aksi cepat.
 *   `AIModal`: Komponen dialog modal dengan efek visual *glassmorphism* dan *glowing neon accent* yang didedikasikan untuk interaksi fitur AI.
+*   `Toast`: Komponen notifikasi pop-up dinamis di sudut layar dengan animasi masuk/keluar untuk memberi umpan balik visual setiap aksi CRUD.
 
 ### Komponen Backend/API
 Pada tahap implementasi aktual ini, sistem Notula tidak bergantung pada backend server fisik (*serverless architecture*). API disimulasikan melalui modul JavaScript lokal (`notesStore.js` dan `settingsStore.js`) yang menyediakan fungsi-fungsi ekspor asinkron untuk merepresentasikan respons server sesungguhnya.
@@ -102,24 +103,26 @@ tubes-kapita-selekta-kelompok2/
 │   ├── assets/             # Aset gambar & stylesheet internal
 │   ├── components/         # Komponen UI Reusable
 │   │   ├── AIModal.jsx     # Modal khusus tampilan AI
-│   │   ├── AppLayout.jsx   # Layout bersama (Sidebar + Nav)
-│   │   ├── BottomNav.jsx   # Navigasi mobile
-│   │   ├── NoteCard.jsx    # Desain kartu item catatan
+│   │   ├── AppLayout.jsx   # Layout bersama (Sidebar + Nav + Toast)
+│   │   ├── BottomNav.jsx   # Navigasi mobile (terintegrasi Bottom Sheet)
+│   │   ├── NoteCard.jsx    # Desain kartu item catatan (hover glow)
 │   │   ├── Sidebar.jsx     # Navigasi desktop & list catatan
-│   │   └── TopNav.jsx      # Header bar
+│   │   ├── TopNav.jsx      # Header bar (pencarian global)
+│   │   └── Toast.jsx       # Notifikasi mengambang (Floating Toast)
 │   ├── pages/              # Halaman-halaman utama (Views)
 │   │   ├── DashboardPage.jsx  # Halaman Dashboard & filtering
-│   │   ├── EditorPage.jsx     # Halaman penulisan & editor Markdown
-│   │   ├── LandingPage.jsx    # Halaman utama pemasaran aplikasi
+│   │   ├── EditorPage.jsx     # Halaman penulisan & editor Markdown (Live Preview)
+│   │   ├── LandingPage.jsx    # Halaman utama pemasaran aplikasi (Responsive copy)
 │   │   ├── LoginPage.jsx      # Halaman Login
 │   │   ├── NotFoundPage.jsx   # Halaman error 404
 │   │   ├── ProfilePage.jsx    # Profil & pengaturan sistem
-│   │   └── RegisterPage.jsx   # Halaman registrasi akun baru
+│   │   └── RegisterPage.jsx   # Halaman registrasi akun baru (Real-time check)
 │   ├── utils/              # Berisi logika & manipulasi penyimpanan
 │   │   ├── notesStore.js      # CRUD catatan & localStorage
-│   │   └── settingsStore.js   # Konfigurasi preferensi & tema
+│   │   ├── settingsStore.js   # Konfigurasi preferensi & tema
+│   │   └── useToast.js        # Utilitas hook pemanggil Toast
 │   ├── App.jsx             # File routing aplikasi
-│   ├── index.css           # Styling global & token desain CSS
+│   ├── index.css           # Styling global & token desain CSS (animasi & sheet)
 │   └── main.jsx            # Entry point React
 ├── index.html              # HTML utama
 ├── vite.config.js          # Konfigurasi Vite
@@ -187,35 +190,45 @@ Fitur AI diintegrasikan pada komponen [EditorPage.jsx](file:///d:/TUGAS%20ITTP/S
     ![Features Section](../Frontend/public/screenshots/landing_page_features.png)
     *Gambar 4.2. Bagian Fitur pada Landing Page*
 
-3.  **Dashboard Utama (Dark Mode)**:
+3.  **Halaman Registrasi dengan Validasi Real-time**:
+    Menyediakan kolom input yang dilengkapi pendeteksi kecocokan sandi dan syarat minimal 6 karakter. Tombol submit akan dikunci (disabled) jika kriteria keamanan sandi belum terpenuhi.
+    ![Register Validation](../Frontend/public/screenshots/register_validation.png)
+    *Gambar 4.3. Validasi Keamanan Sandi pada Halaman Registrasi*
+
+4.  **Dashboard Utama (Dark Mode)**:
     Menampilkan ringkasan seluruh catatan aktif pengguna dalam bentuk grid kartu yang dinamis. Pengguna dapat mencari catatan secara instan melalui kolom pencarian, mengkategorikan catatan ke folder, menandai favorit, atau menghapus catatan.
     ![Dashboard](../Frontend/public/screenshots/dashboard_page.png)
-    *Gambar 4.3. Antarmuka Dashboard (Mode Gelap)*
+    *Gambar 4.4. Antarmuka Dashboard (Mode Gelap)*
 
-4.  **Editor Catatan (Markdown Editor & Toolbar)**:
+5.  **Editor Catatan (Mode Edit & Toolbar)**:
     Halaman kerja utama pengguna yang dibekali bilah alat pemformatan teks Markdown secara instan. Menampilkan status penyimpanan dinamis (*auto-save*), penghitung statistik kata/karakter, pengelompokan folder, dan akses langsung ke menu AI.
     ![Editor](../Frontend/public/screenshots/editor_page.png)
-    *Gambar 4.4. Editor Catatan dengan Format Bold & Italic Terbaru*
+    *Gambar 4.5. Editor Catatan dengan Format Bold & Italic Terbaru*
 
-5.  **Modal Hasil Pemrosesan AI**:
+6.  **Pratinjau Markdown Live (Mode Preview)**:
+    Sistem parser Markdown bawaan yang mengkonversi sintaks penulisan secara langsung menjadi tampilan HTML terformat ketika mode pratinjau diaktifkan.
+    ![Editor Preview](../Frontend/public/screenshots/editor_preview.png)
+    *Gambar 4.6. Pratinjau Markdown Live di Halaman Editor*
+
+7.  **Modal Hasil Pemrosesan AI**:
     Tampilan dialog interaktif saat fitur AI dipicu. Menampilkan poin penting hasil ringkasan teks otomatis dari draf tulisan yang sedang diedit.
     ![AI Modal](../Frontend/public/screenshots/ai_summary_modal.png)
-    *Gambar 4.5. Antarmuka Dialog AI Summarize dengan Efek Cahaya Khusus*
+    *Gambar 4.7. Antarmuka Dialog AI Summarize dengan Efek Cahaya Khusus*
 
-6.  **Halaman Profil & Pengaturan Sistem (Mode Gelap)**:
+8.  **Halaman Profil & Pengaturan Sistem (Mode Gelap)**:
     Menyediakan rangkuman statistik penulisan pengguna (total catatan, jumlah kata, dan karakter yang ditulis) serta opsi penyesuaian fungsionalitas aplikasi.
     ![Profile Dark](../Frontend/public/screenshots/profile_dark_mode.png)
-    *Gambar 4.6. Halaman Profil & Pengaturan (Mode Gelap)*
+    *Gambar 4.8. Halaman Profil & Pengaturan (Mode Gelap)*
 
-7.  **Halaman Profil & Pengaturan (Mode Terang)**:
+9.  **Halaman Profil & Pengaturan (Mode Terang)**:
     Visualisasi antarmuka Notula ketika preferensi Mode Terang (*Light Mode*) diaktifkan secara dinamis. Skema warna berubah secara drastis untuk memberikan kenyamanan membaca di lingkungan yang terang.
     ![Profile Light](../Frontend/public/screenshots/profile_light_mode.png)
-    *Gambar 4.7. Halaman Profil & Pengaturan (Mode Terang)*
+    *Gambar 4.9. Halaman Profil & Pengaturan (Mode Terang)*
 
-8.  **Dashboard Utama (Mode Terang)**:
+10. **Dashboard Utama (Mode Terang)**:
     Tampilan kartu catatan dan bilah navigasi dengan tema warna terang yang rapi dan kontras tinggi.
     ![Dashboard Light](../Frontend/public/screenshots/dashboard_light_mode.png)
-    *Gambar 4.8. Antarmuka Dashboard (Mode Terang)*
+    *Gambar 4.10. Antarmuka Dashboard (Mode Terang)*
 
 ---
 
@@ -227,13 +240,17 @@ Sistem diuji menggunakan metode *Black-Box Testing* untuk memverifikasi fungsion
 | Modul Fitur | Skenario Pengujian | Ekspektasi Hasil | Realisasi Hasil Pengujian | Status |
 | :--- | :--- | :--- | :--- | :---: |
 | **Autentikasi** | Mengisi form login/register dan menekan tombol submit. | Sistem memproses data kredensial dan mengalihkan halaman ke Dashboard. | Berhasil masuk ke dashboard dengan menyimpan simulasi sesi. | **LULUS (Pass)** |
-| **Tambah Catatan** | Menekan tombol "Create New Note" di Dashboard. | Inisialisasi catatan baru kosong, mengalihkan editor ke URL catatan baru tersebut. | Catatan baru langsung terbentuk dengan ID unik dan dialihkan ke editor. | **LULUS (Pass)** |
+| **Validasi Registrasi** | Mengisi kata sandi tidak cocok atau kurang dari 6 karakter. | Pesan error muncul di bawah kolom input, dan tombol daftar (Register) terkunci. | Indikator visual real-time muncul tepat dan tombol ter-disable secara dinamis. | **LULUS (Pass)** |
+| **Tambah Catatan** | Menekan tombol "Create New Note" di Dashboard atau TopNav. | Inisialisasi catatan baru kosong, mengalihkan editor ke URL catatan baru tersebut. | Catatan baru langsung terbentuk dengan ID unik dan dialihkan ke editor. | **LULUS (Pass)** |
 | **Edit & Auto-Save** | Menulis teks pada judul/konten di Editor Page. | Perubahan tersimpan otomatis ke `localStorage` setelah jeda ketik berakhir (800ms). | Teks berhasil disimpan secara otomatis, indikator berubah menjadi "Saved". | **LULUS (Pass)** |
-| **Markdown Bold** | Mengklik ikon Bold pada toolbar editor. | Menyisipkan format bold dengan sepasang tanda bintang tunggal `*text*` di area kursor. | Teks yang diblok terbungkus format `*...*` dengan benar. | **LULUS (Pass)** |
-| **Markdown Italic** | Mengklik ikon Italic pada toolbar editor. | Menyisipkan format italic dengan sepasang garis bawah tunggal `_text_` di area kursor. | Teks yang diblok terbungkus format `_..._` dengan benar. | **LULUS (Pass)** |
-| **Pencarian Catatan** | Mengetik kata kunci tertentu pada kolom pencarian dashboard. | Daftar kartu catatan menyaring hasil yang hanya mengandung kata kunci tersebut secara instan. | Penyaringan berjalan secara real-time berdasarkan judul dan konten. | **LULUS (Pass)** |
-| **Filter Favorites** | Mengaktifkan menu filter "Favorites" di navigasi samping. | Hanya menampilkan catatan yang memiliki nilai `isFavorite: true`. | Catatan tersaring dengan tepat tanpa melibatkan catatan non-favorit. | **LULUS (Pass)** |
+| **Markdown Bold** | Mengklik ikon Bold pada toolbar editor / menekan Ctrl+B. | Menyisipkan format bold dengan sepasang tanda bintang tunggal `*text*` di area kursor. | Teks yang diblok terbungkus format `*...*` dengan benar. | **LULUS (Pass)** |
+| **Markdown Italic** | Mengklik ikon Italic pada toolbar editor / menekan Ctrl+I. | Menyisipkan format italic dengan sepasang garis bawah tunggal `_text_` di area kursor. | Teks yang diblok terbungkus format `_..._` dengan benar. | **LULUS (Pass)** |
+| **Markdown Preview** | Mengklik tombol toggle Preview / menekan Ctrl+Shift+P. | Beralih ke layar pratinjau yang me-render sintaks Markdown menjadi tampilan HTML terformat. | Parser internal berhasil memproses teks Markdown secara langsung (live preview). | **LULUS (Pass)** |
+| **Pencarian Catatan** | Mengetik kata kunci tertentu pada kolom pencarian dashboard / TopNav. | Daftar kartu catatan menyaring hasil yang hanya mengandung kata kunci tersebut secara instan. | Penyaringan berjalan secara real-time berdasarkan query URL parameter `?q=`. | **LULUS (Pass)** |
+| **Filter Favorites** | Mengaktifkan menu filter "Favorites" di navigasi samping / Bottom Sheet. | Hanya menampilkan catatan yang memiliki nilai `isFavorite: true`. | Catatan tersaring dengan tepat tanpa melibatkan catatan non-favorit. | **LULUS (Pass)** |
 | **Manajemen Folder** | Menentukan nama folder pada menu notebook catatan di editor. | Catatan dikelompokkan dalam kategori folder bersangkutan di Dashboard. | Terbentuk sub-kategori folder baru yang rapi di bawah tab Notebooks. | **LULUS (Pass)** |
+| **Navigasi Mobile** | Membuka filter notes lewat Bottom Sheet di ukuran layar mobile. | Bottom Sheet muncul lancar dari bawah saat mengklik menu navigasi BottomNav. | Dapat beralih ke filter All Notes/Favorites/Notebooks/Archive dengan responsif. | **LULUS (Pass)** |
+| **Notifikasi Toast** | Melakukan operasi simpan, hapus, arsip, favorit, atau update preferensi. | Toast mengambang muncul memberi konfirmasi aksi berhasil di sudut layar. | Toast ter-render dengan animasi slide-up dan menghilang otomatis setelah 3 detik. | **LULUS (Pass)** |
 | **Toggle Tema** | Mengaktifkan/nonaktifkan tombol Dark Mode pada profil. | Seluruh antarmuka beralih skema warna (gelap/terang) seketika tanpa refresh halaman. | Class `.dark` / `.light` langsung di-toggle pada elemen root HTML. | **LULUS (Pass)** |
 | **Opsi Fitur AI** | Menutup opsi AI Features pada halaman profil. | Tombol aksi AI (Summarize & Fix Grammar) di halaman editor tidak ditampilkan. | Tombol AI berhasil disembunyikan sepenuhnya dari bar navigasi editor. | **LULUS (Pass)** |
 
@@ -270,10 +287,12 @@ Implementasi Notula berhasil merealisasikan seluruh kebutuhan utama yang direnca
 *   Sistem manajemen tema warna (Light/Dark mode) berhasil merubah skema warna secara dinamis pada semua komponen tanpa kebocoran gaya visual.
 *   Pemisahan data berdasarkan kategori filter (Favorites, Notebooks, Archive) sinkron secara otomatis dengan data pada daftar utama catatan.
 
-### Kendala Implementasi
-1.  **Keterbatasan Akses Navigasi Mobile**: Antarmuka navigasi mobile (`BottomNav`) memiliki ruang layar yang terbatas, sehingga menyulitkan akses langsung ke daftar Notebooks atau Arsip spesifik tanpa membuka submenu tambahan.
-2.  **Sinkronisasi Search Bar**: Kolom pencarian di bagian `TopNav` (header global) membutuhkan integrasi koordinasi state yang lebih kompleks jika ingin mensinkronkan data pencarian di halaman Dashboard secara instan.
-3.  **Ketiadaan Server Fisik**: Ketiadaan basis data server terpusat membuat data catatan saat ini hanya terikat pada satu peramban di satu perangkat saja.
+### Kendala yang Berhasil Diatasi
+1.  **Keterbatasan Akses Navigasi Mobile**: Diselesaikan dengan merancang komponen navigasi *Bottom Sheet* yang meluncur dari dasar layar, sehingga memberikan akses penuh ke seluruh folder dan filter tanpa mengacaukan ruang visual BottomNav mobile.
+2.  **Sinkronisasi Search Bar Global**: Masalah sinkronisasi antara input pencarian TopNav dan DashboardPage diselesaikan menggunakan koordinasi berbasis query parameter URL (`?q=`), menjamin sinkronisasi instan terlepas dari asal halaman pencarian dipicu.
+
+### Sisa Kendala & Keterbatasan
+1.  **Ketiadaan Server Fisik**: Ketiadaan basis data server terpusat membuat data catatan saat ini hanya terikat pada satu peramban di satu perangkat saja (menggunakan LocalStorage).
 
 ### Kelebihan Sistem
 *   **Kecepatan Luar Biasa**: Ketiadaan latensi jaringan membuat aplikasi terasa sangat cepat (*instantaneous*) saat berpindah halaman atau menyimpan berkas catatan.
@@ -281,8 +300,8 @@ Implementasi Notula berhasil merealisasikan seluruh kebutuhan utama yang direnca
 *   **Kontrol Privasi Penuh**: Data catatan disimpan secara lokal di komputer pengguna, sehingga tidak ada risiko kebocoran data sensitif ke server pihak ketiga tanpa persetujuan.
 
 ### Keterbatasan Sistem
-*   **Belum Ada Live Preview Terintegrasi**: Konten editor masih ditampilkan dalam bentuk teks Markdown mentah (raw plain-text), pengguna belum dapat melihat hasil render Markdown terformat (seperti render tabel, list tercoret, dll) secara langsung di dalam editor (WYSIWYG).
-*   **Ketergantungan terhadap Cache Browser**: Jika pengguna membersihkan data penjelajahan peramban (*clear browser cache/cookies*), maka seluruh data catatan yang disimpan akan terhapus.
+*   **Keterbatasan Sunting WYSIWYG**: Meskipun sudah dilengkapi fitur Live Preview (Split View / Toggle), penulisan langsung di editor masih menggunakan sintaks Markdown mentah, bukan berupa penyuntingan WYSIWYG *in-place*.
+*   **Ketergantungan terhadap Cache Browser**: Jika pengguna membersihkan data penjelajahan peramban (*clear browser cache/cookies*), maka seluruh data catatan yang disimpan di LocalStorage akan terhapus.
 
 ### Analisis Performa
 Audit Lighthouse menunjukkan skor optimasi pemuatan awal yang sangat memuaskan (98%). Kecepatan pemuatan awal dipengaruhi secara positif oleh penggunaan compiler internal Vite yang mereduksi ukuran bundel Javascript (*bundle size*) di bawah 150 KB. Selain itu, optimalisasi struktur DOM pada React mencegah terjadinya aktivitas *re-rendering* komponen NoteCard yang tidak diperlukan ketika pengguna sedang mengetik di dalam kolom input pencarian.

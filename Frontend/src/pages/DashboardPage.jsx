@@ -13,6 +13,7 @@ import {
   toggleFavorite,
   toggleArchive,
 } from '../utils/notesStore.js'
+import { showToast } from '../utils/useToast.js'
 
 export default function DashboardPage() {
   const [notes, setNotes] = useState([])
@@ -23,6 +24,14 @@ export default function DashboardPage() {
   const navigate = useNavigate()
 
   const filter = searchParams.get('filter') || 'all'
+  const urlQuery = searchParams.get('q') || ''
+
+  // Sync URL ?q= param to local search state
+  useEffect(() => {
+    if (urlQuery) {
+      setSearchQuery(urlQuery)
+    }
+  }, [urlQuery])
 
   const refreshNotes = () => {
     if (searchQuery.trim()) {
@@ -66,16 +75,19 @@ export default function DashboardPage() {
     deleteNote(id)
     refreshNotes()
     setDeleteConfirm(null)
+    showToast('Note deleted', 'info')
   }
 
   const handleToggleFavorite = (id) => {
-    toggleFavorite(id)
+    const updated = toggleFavorite(id)
     refreshNotes()
+    showToast(updated?.isFavorite ? 'Added to favorites' : 'Removed from favorites', 'success')
   }
 
   const handleToggleArchive = (id) => {
-    toggleArchive(id)
+    const updated = toggleArchive(id)
     refreshNotes()
+    showToast(updated?.isArchived ? 'Note archived' : 'Note unarchived', 'success')
   }
 
   // Page title & info by filter

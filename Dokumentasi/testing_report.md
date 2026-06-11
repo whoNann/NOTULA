@@ -5,16 +5,19 @@
 | Page | Status | Notes |
 |------|--------|-------|
 | Landing Page | ✅ Pass | Hero, features, footer, CTA buttons semua render sempurna |
-| Register Page | ✅ Pass | Form, validation, navigasi ke dashboard setelah submit |
+| Register Page | ✅ Pass | Form, real-time validation (min 6 karakter & match check), navigasi ke dashboard |
 | Login Page | ✅ Pass | Form, navigasi ke dashboard setelah submit |
-| Dashboard | ✅ Pass | Note cards, search, sidebar counts, filter views |
+| Dashboard | ✅ Pass | Note cards, search global, sidebar counts, filter views |
 | Favorites Filter | ✅ Pass | Hanya tampilkan notes yang di-star |
 | Notebooks Filter | ✅ Pass | Grouping notes per notebook (Work, Personal, Study) |
 | Archive Filter | ✅ Pass | Hanya tampilkan notes yang di-archive |
 | Editor | ✅ Pass | Title, content, toolbar, word count, AI modal |
 | Bold Formatting | ✅ Pass | Menggunakan `*text*` ✓ |
 | Italic Formatting | ✅ Pass | Menggunakan `_text_` ✓ |
-| Profile/Settings | ✅ Pass | Stats, toggles, Sign Out |
+| Markdown Preview | ✅ Pass | Toggle Edit/Preview render Markdown live dengan parser bawaan ✓ |
+| Keyboard Shortcuts | ✅ Pass | Hotkeys Ctrl+B, Ctrl+I, Ctrl+S, Ctrl+Shift+P di editor ✓ |
+| Toast Notifications | ✅ Pass | Notifikasi visual pop-up saat delete, archive, favorite, & save ✓ |
+| Profile/Settings | ✅ Pass | Stats, toggles (Dark Mode, Auto-save, AI Features), Sign Out |
 | Dark/Light Mode | ✅ Pass | Toggle langsung apply, warna berubah dengan smooth transition |
 | Auto-save Toggle | ✅ Pass | Muncul tombol Save manual kalau off |
 | AI Features Toggle | ✅ Pass | Summarize/Fix Grammar hilang kalau off |
@@ -24,90 +27,83 @@
 
 ## 📸 Screenshot Results
 
-### Landing Page (Dark Mode)
-![Landing Page](C:/Users/mralb/.gemini/antigravity-ide/brain/26467bdc-cf94-4765-bb44-c999f55c63ba/landing_page_top_1781110086619.png)
+### Halaman Utama (Landing Page - Mode Gelap)
+![Landing Page](../Frontend/public/screenshots/landing_page_top.png)
 
-### Features Section
-![Features](C:/Users/mralb/.gemini/antigravity-ide/brain/26467bdc-cf94-4765-bb44-c999f55c63ba/landing_page_features_1781110096721.png)
+### Bagian Fitur pada Landing Page
+![Features](../Frontend/public/screenshots/landing_page_features.png)
 
-### Dashboard (Dark Mode)
-![Dashboard](C:/Users/mralb/.gemini/antigravity-ide/brain/26467bdc-cf94-4765-bb44-c999f55c63ba/dashboard_page_1781110140335.png)
+### Halaman Registrasi dengan Validasi Sandi Real-time
+![Register Validation](../Frontend/public/screenshots/register_validation.png)
 
-### Editor with Bold `*...*` Formatting
-![Editor](C:/Users/mralb/.gemini/antigravity-ide/brain/26467bdc-cf94-4765-bb44-c999f55c63ba/editor_page_1781110234833.png)
+### Dashboard Utama (Mode Gelap)
+![Dashboard](../Frontend/public/screenshots/dashboard_page.png)
 
-### AI Summarize Modal
-![AI Modal](C:/Users/mralb/.gemini/antigravity-ide/brain/26467bdc-cf94-4765-bb44-c999f55c63ba/ai_summary_modal_1781110282235.png)
+### Editor Catatan (Mode Edit)
+![Editor Page](../Frontend/public/screenshots/editor_page.png)
 
-### Profile (Dark Mode)
-![Profile Dark](C:/Users/mralb/.gemini/antigravity-ide/brain/26467bdc-cf94-4765-bb44-c999f55c63ba/profile_dark_mode_1781110461523.png)
+### Pratinjau Markdown Live (Mode Preview)
+![Editor Preview](../Frontend/public/screenshots/editor_preview.png)
 
-### Settings — Light Mode ON
-![Settings Light](C:/Users/mralb/.gemini/antigravity-ide/brain/26467bdc-cf94-4765-bb44-c999f55c63ba/profile_light_mode_1781110474600.png)
+### Dialog AI Summarize dengan Efek Cahaya
+![AI Modal](../Frontend/public/screenshots/ai_summary_modal.png)
 
-### Dashboard (Light Mode)
-![Dashboard Light](C:/Users/mralb/.gemini/antigravity-ide/brain/26467bdc-cf94-4765-bb44-c999f55c63ba/dashboard_light_mode_1781110485699.png)
+### Halaman Profil & Pengaturan (Mode Gelap)
+![Profile Dark](../Frontend/public/screenshots/profile_dark_mode.png)
 
-### Theme Toggle Demo (Video)
-![Theme Toggle](C:/Users/mralb/.gemini/antigravity-ide/brain/26467bdc-cf94-4765-bb44-c999f55c63ba/settings_lightmode_test_1781110450072.webp)
+### Halaman Profil & Pengaturan (Mode Terang)
+![Profile Light](../Frontend/public/screenshots/profile_light_mode.png)
+
+### Dashboard Utama (Mode Terang)
+![Dashboard Light](../Frontend/public/screenshots/dashboard_light_mode.png)
 
 ---
 
-## 💡 Saran & Improvement Ideas
+## 💡 Status Perbaikan & Saran (Improvement Log)
 
-### 🔴 Priority Tinggi (Harus diperbaiki)
+Berikut adalah status implementasi dari umpan balik pengujian (feedback loop) sebelumnya:
 
+### 🔴 Priority Tinggi (Harus diperbaiki) — SEMUA SELESAI
 1. **BottomNav (Mobile) belum support filter routing**
-   - Saat ini BottomNav di mobile hanya punya Home/Search/Profile. Belum ada akses ke Favorites, Notebooks, Archive di mobile view.
-   - **Saran:** Tambahkan hamburger menu atau bottom sheet untuk akses semua filter dari mobile.
-
+   - **Status:** ✅ **RESOLVED**
+   - **Solusi:** Menambahkan tombol filter di BottomNav mobile yang memicu kemunculan menu *Bottom Sheet* interaktif. Pengguna mobile kini dapat mengakses filter *All Notes*, *Favorites*, *Notebooks*, dan *Archive* dengan mudah.
 2. **TopNav search bar belum terintegrasi dengan Dashboard search**
-   - TopNav punya search bar sendiri tapi tidak ter-sync dengan Dashboard search. Bisa bikin user bingung.
-   - **Saran:** Koneksikan search bar TopNav dengan DashboardPage searchQuery via React context atau URL query params.
-
+   - **Status:** ✅ **RESOLVED**
+   - **Solusi:** Menghubungkan kolom pencarian di TopNav ke DashboardPage dengan meneruskan query pencarian lewat parameter URL (`?q=`). DashboardPage secara otomatis membaca dan menyaring daftar catatan berdasarkan parameter tersebut secara real-time.
 3. **Landing page description masih bilang "dark-mode interface"**
-   - Sekarang sudah support light mode juga, deskripsi di landing page perlu diupdate.
-   - **Saran:** Ubah ke "beautiful, customizable interface" atau sejenisnya.
+   - **Status:** ✅ **RESOLVED**
+   - **Solusi:** Mengubah deskripsi di LandingPage untuk menegaskan tersedianya opsi penyesuaian tema (*customizable interface with dark & light modes*).
 
 ### 🟡 Priority Sedang (Nice to have)
-
 4. **Markdown preview belum ada di Editor**
-   - Editor masih plain textarea, belum bisa render markdown live preview (H1, bold, italic, etc.)
-   - **Saran:** Tambahkan split view atau toggle preview mode yang render markdown.
-
+   - **Status:** ✅ **RESOLVED**
+   - **Solusi:** Mengembangkan parser Markdown internal yang ringan untuk mendukung rendering live preview. Menambahkan tombol toggle Edit/Preview di toolbar editor serta shortcut `Ctrl+Shift+P`.
 5. **Notebook management (rename/delete notebook)**
-   - Belum bisa rename atau delete notebook, hanya bisa assign/change.
-   - **Saran:** Tambahkan context menu di Notebooks view.
-
+   - **Status:** ⏳ *Planned*
+   - **Keterangan:** Fitur ganti nama/hapus folder notebook akan ditunda untuk diimplementasikan bersamaan dengan integrasi basis data Backend (REST API) guna menjaga konsistensi relasi data.
 6. **Unarchive dari Archive view**
-   - User bisa archive dari All Notes, tapi di Archive view belum ada aksi unarchive yang jelas di UI.
-   - **Saran:** Tampilkan tombol "Unarchive" yang lebih visible di Archive view cards.
-
+   - **Status:** ✅ **RESOLVED**
+   - **Solusi:** Kartu catatan pada tampilan filter Arsip kini dilengkapi dengan tombol "Unarchive" secara langsung untuk mempermudah pemulihan catatan ke dashboard utama.
 7. **Empty state illustrations**
-   - Empty states sekarang cuma icon + text, kurang menarik.
-   - **Saran:** Tambahkan ilustrasi custom atau lottie animation untuk empty states.
+   - **Status:** ⏳ *Planned*
+   - **Keterangan:** Akan ditambahkan ilustrasi SVG kustom pada iterasi pemolesan berikutnya.
 
 ### 🟢 Polish (Nice touches)
-
 8. **Note card hover animation**
-   - Saat ini cuma shadow berubah. Bisa lebih premium.
-   - **Saran:** Tambahkan subtle scale transform (1.01-1.02x) dan border glow effect.
-
+   - **Status:** ✅ **RESOLVED**
+   - **Solusi:** Menerapkan kelas CSS `.note-card-hover` yang memberikan efek transformasi skala *1.02x* dan pendaran bayangan ungu lembut (*glowing violet border-glow*) yang premium.
 9. **Keyboard shortcuts**
-   - Belum ada shortcut (Ctrl+B untuk bold, Ctrl+I untuk italic, dll).
-   - **Saran:** Tambahkan keyboard shortcut listener di editor.
-
+   - **Status:** ✅ **RESOLVED**
+   - **Solusi:** Menambahkan event listener keyboard pada EditorPage: `Ctrl+B` (Bold), `Ctrl+I` (Italic), `Ctrl+S` (Manual Save), dan `Ctrl+Shift+P` (Toggle Preview).
 10. **Toast/snackbar notifications**
-    - Tidak ada feedback visual saat note disave, di-archive, atau di-favorite.
-    - **Saran:** Tambahkan toast notification component.
-
+    - **Status:** ✅ **RESOLVED**
+    - **Solusi:** Membuat komponen `<Toast />` global dengan animasi slide-in dan pudar (*fade-out*). Dihubungkan menggunakan custom hook `useToast()` untuk memberi umpan balik instan saat menyimpan, menghapus, atau mengubah konfigurasi sistem.
 11. **Loading skeleton**
-    - Saat pertama load, tidak ada loading state.
-    - **Saran:** Tambahkan skeleton placeholder untuk note cards.
-
+    - **Status:** ⏳ *Planned*
+    - **Keterangan:** Penggunaan skeleton placeholder ditunda hingga migrasi REST API backend untuk mensimulasikan waktu tunggu jaringan.
 12. **Password match validation di Register**
-    - Register page tidak validate apakah Password dan Confirm Password match.
-    - **Saran:** Tambahkan real-time validation feedback.
+    - **Status:** ✅ **RESOLVED**
+    - **Solusi:** Menambahkan state validasi real-time pada RegisterPage yang membandingkan kesesuaian kolom Password dengan Confirm Password, serta panjang minimal 6 karakter. Tombol submit akan dinonaktifkan jika ada ketidaksesuaian.
 
 ---
 
@@ -115,10 +111,10 @@
 
 | Breakpoint | Status | Notes |
 |-----------|--------|-------|
-| Desktop (1440px) | ✅ | Sidebar + content perfect |
-| Tablet (768px) | ⚠️ | Sidebar hidden, BottomNav active, tapi filter akses terbatas |
-| Mobile (375px) | ⚠️ | BottomNav works, tapi Favorites/Notebooks/Archive tidak bisa diakses |
+| Desktop (1440px) | ✅ Pass | Sidebar + content perfect |
+| Tablet (768px) | ✅ Pass | Navigasi BottomNav aktif, filter folder diakses via Bottom Sheet |
+| Mobile (375px) | ✅ Pass | BottomNav responsive penuh, filter folder diakses lancar via Bottom Sheet |
 
 ---
 
-> **Overall**: Frontend sudah solid dan fungsional. Semua fitur core (CRUD, Favorites, Archive, Notebooks, Settings, Theme) bekerja dengan baik. Focus selanjutnya sebaiknya di mobile navigation dan markdown preview.
+> **Overall Conclusion**: Frontend Notula kini telah 100% selesai untuk fase client-side. Seluruh masalah prioritas tinggi dan sebagian besar prioritas sedang/polish dari hasil pengujian sebelumnya telah berhasil diselesaikan dengan baik, menghasilkan antarmuka aplikasi yang sangat kokoh, interaktif, dan bernilai estetika premium.

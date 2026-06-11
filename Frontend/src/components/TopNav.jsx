@@ -1,12 +1,35 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { createNote } from '../utils/notesStore.js'
+import { useState } from 'react'
 
 export default function TopNav() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [localSearch, setLocalSearch] = useState('')
 
   const handleNewNote = () => {
     const note = createNote()
     navigate(`/note/${note.id}`)
+  }
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault()
+    if (localSearch.trim()) {
+      navigate(`/dashboard?q=${encodeURIComponent(localSearch.trim())}`)
+    } else {
+      navigate('/dashboard')
+    }
+  }
+
+  const handleSearchChange = (e) => {
+    setLocalSearch(e.target.value)
+  }
+
+  const clearSearch = () => {
+    setLocalSearch('')
+    if (location.pathname === '/dashboard') {
+      navigate('/dashboard')
+    }
   }
 
   return (
@@ -18,17 +41,28 @@ export default function TopNav() {
         </Link>
 
         {/* Search Bar - Desktop */}
-        <div className="relative w-full max-w-md hidden md:block">
+        <form onSubmit={handleSearchSubmit} className="relative w-full max-w-md hidden md:block">
           <span className="material-symbols-outlined absolute left-4 top-1/2 transform -translate-y-1/2 text-on-surface-variant text-sm">
             search
           </span>
           <input
-            className="w-full pl-12 pr-4 py-2.5 rounded-xl bg-surface border border-outline-variant text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-body-sm placeholder-on-surface-variant/50"
-            placeholder="Search notes..."
+            className="w-full pl-12 pr-10 py-2.5 rounded-xl bg-surface border border-outline-variant text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all text-body-sm placeholder-on-surface-variant/50"
+            placeholder="Search notes... (press Enter)"
             type="text"
             id="search-notes"
+            value={localSearch}
+            onChange={handleSearchChange}
           />
-        </div>
+          {localSearch && (
+            <button
+              type="button"
+              onClick={clearSearch}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-on-surface transition-colors cursor-pointer bg-transparent border-none"
+            >
+              <span className="material-symbols-outlined text-sm">close</span>
+            </button>
+          )}
+        </form>
       </div>
 
       <div className="flex items-center space-x-4">

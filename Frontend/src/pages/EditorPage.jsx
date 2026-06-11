@@ -3,6 +3,77 @@ import { useParams, useNavigate } from 'react-router-dom'
 import AIModal from '../components/AIModal.jsx'
 import { getNote, saveNote, createNote } from '../utils/notesStore.js'
 import { getSettings } from '../utils/settingsStore.js'
+import { showToast } from '../utils/useToast.js'
+
+// ─── Simple Markdown → HTML renderer (no external deps) ───
+function renderMarkdown(md) {
+  let html = md
+    // Escape HTML
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  // Code blocks (``` ... ```)
+  html = html.replace(/```(\w*)\n([\s\S]*?)```/g, (_, lang, code) => {
+    return `<pre><code>${code.trim()}</code></pre>`
+  })
+
+  // Headings
+  html = html.replace(/^### (.+)$/gm, '<h3>$1</h3>')
+  html = html.replace(/^## (.+)$/gm, '<h2>$1</h2>')
+  html = html.replace(/^# (.+)$/gm, '<h1>$1</h1>')
+
+  // Blockquotes
+  html = html.replace(/^&gt; (.+)$/gm, '<blockquote>$1</blockquote>')
+
+  // Bold (*text* and **text**)
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  html = html.replace(/\*(.+?)\*/g, '<strong>$1</strong>')
+
+  // Italic (_text_)
+  html = html.replace(/_(.+?)_/g, '<em>$1</em>')
+
+  // Strikethrough
+  html = html.replace(/~~(.+?)~~/g, '<del>$1</del>')
+
+  // Inline code
+  html = html.replace(/`([^`]+)`/g, '<code>$1</code>')
+
+  // Unordered lists
+  html = html.replace(/^- (.+)$/gm, '<li>$1</li>')
+  html = html.replace(/(<li>[\s\S]*?<\/li>)/g, '<ul>$1</ul>')
+  // Clean up consecutive ul tags
+  html = html.replace(/<\/ul>\s*<ul>/g, '')
+
+  // Numbered lists
+  html = html.replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+
+  // Horizontal rules
+  html = html.replace(/^---$/gm, '<hr />')
+
+  // Paragraphs: wrap remaining lines
+  html = html
+    .split('\n\n')
+    .map((block) => {
+      const trimmed = block.trim()
+      if (!trimmed) return ''
+      if (
+        trimmed.startsWith('<h') ||
+        trimmed.startsWith('<pre') ||
+        trimmed.startsWith('<ul') ||
+        trimmed.startsWith('<ol') ||
+        trimmed.startsWith('<blockquote') ||
+        trimmed.startsWith('<hr') ||
+        trimmed.startsWith('<li')
+      ) {
+        return trimmed
+      }
+      return `<p>${trimmed.replace(/\n/g, '<br />')}</p>`
+    })
+    .join('\n')
+
+  return html
+}
 
 export default function EditorPage() {
   const { id } = useParams()
@@ -19,6 +90,7 @@ export default function EditorPage() {
   const [charCount, setCharCount] = useState(0)
   const [showNotebookInput, setShowNotebookInput] = useState(false)
   const [settings, setSettings] = useState(getSettings())
+  const [viewMode, setViewMode] = useState('edit') // 'edit' | 'preview'
 
   // AI Modal State
   const [isAiModalOpen, setIsAiModalOpen] = useState(false)
@@ -85,6 +157,7 @@ export default function EditorPage() {
   const handleManualSave = () => {
     setIsSaving(true)
     doSave(title, content, { notebook, isFavorite })
+    showToast('Note saved', 'success')
   }
 
   const handleTitleChange = (e) => {
@@ -108,6 +181,7 @@ export default function EditorPage() {
     const newVal = !isFavorite
     setIsFavorite(newVal)
     saveNote(id, { isFavorite: newVal })
+    showToast(newVal ? 'Added to favorites' : 'Removed from favorites', 'success')
   }
 
   // Toolbar formatting functions
@@ -137,6 +211,39 @@ export default function EditorPage() {
   const handleH2 = () => insertFormat('## ')
   const handleBullet = () => insertFormat('- ')
   const handleCode = () => insertFormat('```\n', '\n```')
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only handle shortcuts when editor is focused area
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key.toLowerCase()) {
+          case 'b':
+            e.preventDefault()
+            handleBold()
+            break
+          case 'i':
+            e.preventDefault()
+            handleItalic()
+            break
+          case 's':
+            e.preventDefault()
+            handleManualSave()
+            break
+          case 'p':
+            if (e.shiftKey) {
+              e.preventDefault()
+              setViewMode((prev) => (prev === 'edit' ? 'preview' : 'edit'))
+            }
+            break
+          default:
+            break
+        }
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [content, title, notebook, isFavorite])
 
   const handleSummarize = () => {
     setAiModalTitle('AI Results — Summarize')
@@ -229,6 +336,32 @@ export default function EditorPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex items-center bg-surface-container rounded-lg border border-outline-variant/30 overflow-hidden">
+            <button
+              onClick={() => setViewMode('edit')}
+              className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold cursor-pointer border-none transition-colors ${
+                viewMode === 'edit'
+                  ? 'bg-primary/15 text-primary'
+                  : 'bg-transparent text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[14px]">edit</span>
+              <span className="hidden sm:inline">Edit</span>
+            </button>
+            <button
+              onClick={() => setViewMode('preview')}
+              className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold cursor-pointer border-none transition-colors ${
+                viewMode === 'preview'
+                  ? 'bg-primary/15 text-primary'
+                  : 'bg-transparent text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[14px]">visibility</span>
+              <span className="hidden sm:inline">Preview</span>
+            </button>
+          </div>
+
           {/* Favorite toggle */}
           <button
             onClick={handleToggleFavorite}
@@ -324,46 +457,60 @@ export default function EditorPage() {
           />
         </div>
 
-        {/* Toolbar */}
-        <div className="px-4 md:px-8 max-w-[900px] mx-auto w-full flex-shrink-0">
-          <div className="h-10 flex items-center gap-1 text-on-surface-variant border-b border-outline-variant/20 pb-3 mb-4 overflow-x-auto">
-            <button onClick={handleBold} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors cursor-pointer bg-transparent border-none" title="Bold (*text*)">
-              <span className="material-symbols-outlined text-sm font-bold">format_bold</span>
-            </button>
-            <button onClick={handleItalic} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors cursor-pointer bg-transparent border-none" title="Italic (_text_)">
-              <span className="material-symbols-outlined text-sm italic">format_italic</span>
-            </button>
-            <button onClick={handleStrikethrough} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors cursor-pointer bg-transparent border-none" title="Strikethrough">
-              <span className="material-symbols-outlined text-sm">strikethrough_s</span>
-            </button>
-            <div className="w-px h-4 bg-outline-variant/50 mx-1"></div>
-            <button onClick={handleH1} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors text-label-md font-bold cursor-pointer bg-transparent border-none" title="Heading 1">
-              H1
-            </button>
-            <button onClick={handleH2} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors text-label-md font-bold cursor-pointer bg-transparent border-none" title="Heading 2">
-              H2
-            </button>
-            <div className="w-px h-4 bg-outline-variant/50 mx-1"></div>
-            <button onClick={handleBullet} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors cursor-pointer bg-transparent border-none" title="Bullet List">
-              <span className="material-symbols-outlined text-sm">format_list_bulleted</span>
-            </button>
-            <button onClick={handleCode} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors cursor-pointer bg-transparent border-none" title="Code Block">
-              <span className="material-symbols-outlined text-sm">code</span>
-            </button>
+        {/* Toolbar (only visible in edit mode) */}
+        {viewMode === 'edit' && (
+          <div className="px-4 md:px-8 max-w-[900px] mx-auto w-full flex-shrink-0">
+            <div className="h-10 flex items-center gap-1 text-on-surface-variant border-b border-outline-variant/20 pb-3 mb-4 overflow-x-auto">
+              <button onClick={handleBold} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors cursor-pointer bg-transparent border-none" title="Bold (*text*) — Ctrl+B">
+                <span className="material-symbols-outlined text-sm font-bold">format_bold</span>
+              </button>
+              <button onClick={handleItalic} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors cursor-pointer bg-transparent border-none" title="Italic (_text_) — Ctrl+I">
+                <span className="material-symbols-outlined text-sm italic">format_italic</span>
+              </button>
+              <button onClick={handleStrikethrough} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors cursor-pointer bg-transparent border-none" title="Strikethrough">
+                <span className="material-symbols-outlined text-sm">strikethrough_s</span>
+              </button>
+              <div className="w-px h-4 bg-outline-variant/50 mx-1"></div>
+              <button onClick={handleH1} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors text-label-md font-bold cursor-pointer bg-transparent border-none" title="Heading 1">
+                H1
+              </button>
+              <button onClick={handleH2} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors text-label-md font-bold cursor-pointer bg-transparent border-none" title="Heading 2">
+                H2
+              </button>
+              <div className="w-px h-4 bg-outline-variant/50 mx-1"></div>
+              <button onClick={handleBullet} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors cursor-pointer bg-transparent border-none" title="Bullet List">
+                <span className="material-symbols-outlined text-sm">format_list_bulleted</span>
+              </button>
+              <button onClick={handleCode} className="p-1.5 rounded-lg hover:bg-surface-variant hover:text-on-background transition-colors cursor-pointer bg-transparent border-none" title="Code Block">
+                <span className="material-symbols-outlined text-sm">code</span>
+              </button>
+              <div className="w-px h-4 bg-outline-variant/50 mx-1"></div>
+              {/* Keyboard shortcuts hint */}
+              <span className="text-label-md text-on-surface-variant/30 ml-2 hidden lg:inline">
+                Ctrl+B Bold · Ctrl+I Italic · Ctrl+S Save · Ctrl+Shift+P Preview
+              </span>
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Editor Textarea */}
+        {/* Editor Textarea / Preview */}
         <div className="flex-1 px-4 md:px-8 pb-8 max-w-[900px] mx-auto w-full">
-          <textarea
-            ref={textareaRef}
-            className="w-full h-full min-h-[500px] bg-transparent border-none outline-none text-editor text-on-surface resize-none focus:ring-0 editor-textarea leading-relaxed"
-            spellCheck="false"
-            placeholder="Start writing your note..."
-            value={content}
-            onChange={handleContentChange}
-            id="editor-content"
-          ></textarea>
+          {viewMode === 'edit' ? (
+            <textarea
+              ref={textareaRef}
+              className="w-full h-full min-h-[500px] bg-transparent border-none outline-none text-editor text-on-surface resize-none focus:ring-0 editor-textarea leading-relaxed"
+              spellCheck="false"
+              placeholder="Start writing your note..."
+              value={content}
+              onChange={handleContentChange}
+              id="editor-content"
+            ></textarea>
+          ) : (
+            <div
+              className="markdown-preview text-on-surface leading-relaxed min-h-[500px]"
+              dangerouslySetInnerHTML={{ __html: renderMarkdown(content) || '<p class="text-on-surface-variant/40 italic">Nothing to preview yet. Switch to Edit mode and start writing...</p>' }}
+            />
+          )}
         </div>
       </div>
 

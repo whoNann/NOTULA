@@ -90,7 +90,7 @@ export default function LandingPage() {
 
           <p className="text-body-lg text-on-surface-variant max-w-xl mx-auto mb-10 leading-relaxed">
             Notula is an AI-powered note-taking app built for focus. Capture ideas, summarize content, and
-            organize knowledge — all in a beautiful dark-mode interface.
+            organize knowledge — all in a beautiful, customizable interface with dark &amp; light modes.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

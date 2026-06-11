@@ -1,7 +1,7 @@
 export default function NoteCard({ title, snippet, time, icon, isActive, aiTag, isFavorite, onToggleFavorite, onToggleArchive, isArchived }) {
   return (
     <div
-      className={`surface-level-2 rounded-xl p-6 flex flex-col h-56 hover:shadow-xl transition-all cursor-pointer group relative overflow-hidden ${
+      className={`surface-level-2 rounded-xl p-6 flex flex-col h-56 hover:shadow-xl transition-all cursor-pointer group relative overflow-hidden note-card-hover ${
         isActive ? 'card-active' : ''
       }`}
     >

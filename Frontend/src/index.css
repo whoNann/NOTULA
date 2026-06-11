@@ -319,3 +319,57 @@ a, button {
 html.light ::selection {
   background-color: rgba(97, 61, 224, 0.2);
 }
+
+/* ─── Toast Notification ─── */
+.toast-slide-in {
+  animation: toastSlideIn 0.3s ease-out both;
+}
+
+@keyframes toastSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ─── Bottom Sheet (Mobile Menu) ─── */
+.bottom-sheet-overlay {
+  animation: overlayFadeIn 0.25s ease-out both;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.bottom-sheet-panel {
+  animation: sheetSlideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes sheetSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* ─── Note Card Hover Glow ─── */
+.note-card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.note-card-hover:hover {
+  transform: translateY(-2px) scale(1.015);
+  box-shadow: 0 8px 30px rgba(124, 92, 252, 0.08), 0 2px 8px rgba(0,0,0,0.12);
+  border-color: rgba(124, 92, 252, 0.25);
+}
+html.light .note-card-hover:hover {
+  box-shadow: 0 8px 30px rgba(97, 61, 224, 0.06), 0 2px 8px rgba(0,0,0,0.08);
+  border-color: rgba(97, 61, 224, 0.2);
+}
+

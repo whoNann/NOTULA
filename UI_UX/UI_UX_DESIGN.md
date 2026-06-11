@@ -54,6 +54,9 @@ Untuk menghadirkan nuansa premium, Notula menerapkan beberapa detail mikro-antar
 *   **Glassmorphism Backdrop**: Menggunakan CSS `backdrop-filter: blur(12px)` pada komponen navigasi header (`TopNav`) dan modal AI (`AIModal`) untuk membiarkan bayangan konten di belakangnya meluncur transparan saat digulir.
 *   **AI Glow Border**: Garis pinggir setebal `1px` dengan bayangan berpendar ungu (`box-shadow: 0 0 15px rgba(124, 92, 252, 0.2)`) yang dipicu saat fitur AI aktif.
 *   **Page Transitions**: Kelas `.page-fade-in` menyuntikkan animasi *fade-in* lembut selama 300ms untuk meredam kedipan kasar saat pengguna berpindah halaman.
+*   **Note Card Hover Glow**: Menerapkan kelas `.note-card-hover` yang menghasilkan transformasi perbesaran skala halus (*1.02x*) dan bayangan pendar ungu lavendar lembut (`box-shadow: 0 10px 20px rgba(124, 92, 252, 0.15)`) saat diarahkan kursor.
+*   **Floating Toast Notifications**: Umpan balik visual dinamis menggunakan animasi masuk meluncur dari bawah (*slide-in-up*) dan menghilang lembut (*fade-out*), diimplementasikan secara global untuk konfirmasi CRUD.
+*   **Mobile Bottom Sheet**: Laci filter kategori meluncur mulus dari dasar layar (*slide-up overlay*) khusus pada resolusi mobile/tablet guna menjaga fungsionalitas dan estetika layout.
 
 ---
 
@@ -62,7 +65,12 @@ Seluruh screenshot desain antarmuka tersimpan pada direktori utama proyek di:
 `../Frontend/public/screenshots/`
 
 *   **Landing Page**: [landing_page_top.png](../Frontend/public/screenshots/landing_page_top.png)
+*   **Validasi Keamanan Sandi**: [register_validation.png](../Frontend/public/screenshots/register_validation.png)
 *   **Dashboard Utama**: [dashboard_page.png](../Frontend/public/screenshots/dashboard_page.png)
-*   **Editor Markdown**: [editor_page.png](../Frontend/public/screenshots/editor_page.png)
+*   **Editor Markdown (Edit)**: [editor_page.png](../Frontend/public/screenshots/editor_page.png)
+*   **Pratinjau Markdown Live (Preview)**: [editor_preview.png](../Frontend/public/screenshots/editor_preview.png)
 *   **Modal Fitur AI**: [ai_summary_modal.png](../Frontend/public/screenshots/ai_summary_modal.png)
+*   **Pengaturan Mode Gelap**: [profile_dark_mode.png](../Frontend/public/screenshots/profile_dark_mode.png)
 *   **Pengaturan Mode Terang**: [profile_light_mode.png](../Frontend/public/screenshots/profile_light_mode.png)
+*   **Dashboard Mode Terang**: [dashboard_light_mode.png](../Frontend/public/screenshots/dashboard_light_mode.png)
+

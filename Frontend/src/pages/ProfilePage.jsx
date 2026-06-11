@@ -2,13 +2,22 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getNotes } from '../utils/notesStore.js'
 import { getSettings, updateSetting, applyTheme } from '../utils/settingsStore.js'
+import { showToast } from '../utils/useToast.js'
 
 export default function ProfilePage() {
   const navigate = useNavigate()
   const [stats, setStats] = useState({ noteCount: 0, wordCount: 0, charCount: 0 })
   const [settings, setSettings] = useState(getSettings())
-  const [userName] = useState('Alex')
-  const [userEmail] = useState('alex@notula.app')
+
+  // Read user data from localStorage (set during login/register)
+  const storedUser = (() => {
+    try {
+      const raw = localStorage.getItem('notula_user')
+      return raw ? JSON.parse(raw) : null
+    } catch { return null }
+  })()
+  const [userName] = useState(storedUser?.name || 'Guest User')
+  const [userEmail] = useState(storedUser?.email || 'guest@notula.app')
 
   useEffect(() => {
     const notes = getNotes()
@@ -28,6 +37,11 @@ export default function ProfilePage() {
     // Apply theme immediately if dark mode changed
     if (key === 'darkMode') {
       applyTheme(newValue)
+      showToast(newValue ? 'Dark mode enabled' : 'Light mode enabled', 'info')
+    } else if (key === 'autoSave') {
+      showToast(newValue ? 'Auto-save enabled' : 'Auto-save disabled', 'info')
+    } else if (key === 'aiFeatures') {
+      showToast(newValue ? 'AI features enabled' : 'AI features disabled', 'info')
     }
   }
 
