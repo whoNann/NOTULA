@@ -24,24 +24,29 @@ export default function DashboardPage() {
 
   const filter = searchParams.get('filter') || 'all'
 
-  const refreshNotes = () => {
-    if (searchQuery.trim()) {
-      setNotes(searchNotes(searchQuery))
-      return
-    }
-    switch (filter) {
-      case 'favorites':
-        setNotes(getFavorites())
-        break
-      case 'archive':
-        setNotes(getArchived())
-        break
-      case 'notebooks':
-        setNotebooks(getNotebooks())
-        setNotes([])
-        break
-      default:
-        setNotes(getNotes())
+  const refreshNotes = async () => {
+    try {
+      if (searchQuery.trim()) {
+        const results = await searchNotes(searchQuery)
+        setNotes(results)
+        return
+      }
+      switch (filter) {
+        case 'favorites':
+          setNotes(await getFavorites())
+          break
+        case 'archive':
+          setNotes(await getArchived())
+          break
+        case 'notebooks':
+          setNotebooks(await getNotebooks())
+          setNotes([])
+          break
+        default:
+          setNotes(await getNotes())
+      }
+    } catch (err) {
+      console.error('Failed to load notes:', err)
     }
   }
 
@@ -50,32 +55,56 @@ export default function DashboardPage() {
   }, [filter])
 
   useEffect(() => {
-    if (searchQuery.trim()) {
-      setNotes(searchNotes(searchQuery))
-    } else {
-      refreshNotes()
+    const handleSearch = async () => {
+      if (searchQuery.trim()) {
+        try {
+          const results = await searchNotes(searchQuery)
+          setNotes(results)
+        } catch (err) {
+          console.error('Search failed:', err)
+        }
+      } else {
+        refreshNotes()
+      }
     }
+    handleSearch()
   }, [searchQuery])
 
-  const handleCreateNote = () => {
-    const note = createNote()
-    navigate(`/note/${note.id}`)
+  const handleCreateNote = async () => {
+    try {
+      const note = await createNote()
+      navigate(`/note/${note.id}`)
+    } catch (err) {
+      console.error('Failed to create note:', err)
+    }
   }
 
-  const handleDelete = (id) => {
-    deleteNote(id)
-    refreshNotes()
-    setDeleteConfirm(null)
+  const handleDelete = async (id) => {
+    try {
+      await deleteNote(id)
+      await refreshNotes()
+      setDeleteConfirm(null)
+    } catch (err) {
+      console.error('Failed to delete note:', err)
+    }
   }
 
-  const handleToggleFavorite = (id) => {
-    toggleFavorite(id)
-    refreshNotes()
+  const handleToggleFavorite = async (id) => {
+    try {
+      await toggleFavorite(id)
+      await refreshNotes()
+    } catch (err) {
+      console.error('Failed to toggle favorite:', err)
+    }
   }
 
-  const handleToggleArchive = (id) => {
-    toggleArchive(id)
-    refreshNotes()
+  const handleToggleArchive = async (id) => {
+    try {
+      await toggleArchive(id)
+      await refreshNotes()
+    } catch (err) {
+      console.error('Failed to toggle archive:', err)
+    }
   }
 
   // Page title & info by filter
