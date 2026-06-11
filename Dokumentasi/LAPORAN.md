@@ -38,24 +38,29 @@ Ruang lingkup sistem Notula pada iterasi ini meliputi:
 ## 2. Arsitektur Implementasi
 
 ### Arsitektur Implementasi Aktual
-Sistem Notula diimplementasikan dengan arsitektur arsitektural *Client-Side Single Page Application (SPA)* berbasis React. Karena bersifat serverless pada fase ini, seluruh logika aplikasi, manajemen state, penyimpanan data, dan utilitas AI dieksekusi secara langsung pada browser pengguna (*client-side execution*).
+Sistem Notula menggunakan arsitektur **Serverless Cloud BaaS** yang didukung oleh **Supabase**. Seluruh logika otentikasi pengguna, manajemen state, dan manipulasi data catatan diproses secara asinkron dari frontend klien menggunakan SDK resmi Supabase (`@supabase/supabase-js`). Untuk keamanan API Key Gemini, sistem menggunakan **Supabase Edge Function** yang berjalan di serverless network Supabase untuk memproksi pemrosesan AI.
 
 ```mermaid
 graph TD
     subgraph Client Browser
-        A[User Interface - React Pages] <--> B[AppLayout Container]
-        B <--> C[React State / Context]
-        C <--> D[notesStore Utility]
-        C <--> E[settingsStore Utility]
-        D <--> F[(Browser LocalStorage - Notes Data)]
-        E <--> G[(Browser LocalStorage - Settings Data)]
-        C <--> H[Simulated AI Engine - client-side]
+        A[User Interface - React Pages] <--> B[AppLayout / Route Guard]
+        B <--> C[React State / notesStore.js]
+    end
+    
+    subgraph Supabase Cloud BaaS
+        C <-->|Supabase SDK| D[Supabase Auth]
+        C <-->|Supabase SDK| E[Supabase PostgreSQL Database]
+        C <-->|Supabase Functions Invoke| F[Supabase Edge Function: gemini]
+    end
+    
+    subgraph External Services
+        F <-->|HTTPS API Key| G[Google Gemini API]
     end
 ```
 
 ### Komponen Frontend
 Komponen frontend dibangun menggunakan pendekatan berbasis komponen modular React:
-*   `AppLayout`: Wadah utama yang membungkus navigasi global (`Sidebar`, `TopNav`, `BottomNav`, `Toast`) dan mengatur area konten utama yang responsif.
+*   `AppLayout`: Wadah utama yang membungkus navigasi global (`Sidebar`, `TopNav`, `BottomNav`, `Toast`) serta bertindak sebagai **Auth Guard** untuk membatasi akses halaman bagi pengguna yang belum terautentikasi (mengarahkan otomatis ke `/login` jika tidak ada sesi aktif).
 *   `Sidebar`: Komponen pengendali navigasi kiri pada layar lebar, menampilkan pintasan folder (*Notebooks*), Favorit, Arsip, serta daftar judul catatan.
 *   `TopNav`: Menyediakan akses pencarian cepat (terintegrasi global dengan query URL) dan status penyimpanan di bagian atas.
 *   `BottomNav`: Menyediakan akses navigasi ergonomis di bagian bawah ketika aplikasi diakses melalui perangkat mobile, terintegrasi dengan filter *Bottom Sheet*.
@@ -64,15 +69,16 @@ Komponen frontend dibangun menggunakan pendekatan berbasis komponen modular Reac
 *   `Toast`: Komponen notifikasi pop-up dinamis di sudut layar dengan animasi masuk/keluar untuk memberi umpan balik visual setiap aksi CRUD.
 
 ### Komponen Backend/API
-Pada tahap implementasi aktual ini, sistem Notula tidak bergantung pada backend server fisik (*serverless architecture*). API disimulasikan melalui modul JavaScript lokal (`notesStore.js` dan `settingsStore.js`) yang menyediakan fungsi-fungsi ekspor asinkron untuk merepresentasikan respons server sesungguhnya.
+Sistem ini menggunakan arsitektur serverless, sehingga backend Node.js lokal ditiadakan. Sebagai gantinya, logika backend didelegasikan ke **Supabase** terkelola:
+*   **Supabase Auth**: Menangani manajemen pendaftaran (`signUp`) dan login (`signInWithPassword`) tanpa perlu mengelola token JWT secara manual di backend.
+*   **Supabase Edge Functions**: Fungsi serverless `gemini` yang ditulis menggunakan Deno TypeScript di folder `supabase/functions/gemini/`. Fungsi ini bertindak sebagai perantara aman yang menyimpan `GEMINI_API_KEY` di cloud, menerima isi catatan, memanggil Google Gemini API, dan mengembalikan hasil ke editor.
 
 ### Database
-Penyimpanan data (*database*) menggunakan browser **Web Storage API (LocalStorage)**. Struktur data disimpan dalam bentuk JSON ter-serialisasi dengan kunci unik:
-*   `notula_notes`: Menyimpan array objek catatan.
-*   `notula_settings`: Menyimpan objek preferensi pengguna (mode gelap, status auto-save, dan fitur AI).
+Penyimpanan data (*database*) persisten menggunakan database relasional **PostgreSQL** yang di-host di cloud Supabase. Akses data diisolasi per-pengguna menggunakan kebijakan **Row Level Security (RLS)** pada tabel `public.notes` sehingga satu pengguna tidak dapat membaca atau memanipulasi catatan milik pengguna lain:
+*   `notes`: Menyimpan data catatan (`id`, `user_id` relasi ke tabel internal `auth.users`, `title`, `content`, `ai_tag`, `is_favorite`, `is_archived`, `notebook`, `created_at`, `updated_at`).
 
 ### AI/Model Layer
-Lapisan AI pada tahap prototipe ini diintegrasikan langsung pada frontend (`EditorPage.jsx` & `AIModal.jsx`) menggunakan mesin pemrosesan teks lokal (simulated inference engine). Struktur data dan antarmuka dirancang sedemikian rupa agar modular sehingga ke depannya dapat langsung dikoneksikan ke Web API model bahasa besar (LLM) seperti Google Gemini API menggunakan `fetch` request atau Google AI SDK.
+Lapisan AI diproksi melalui **Supabase Edge Function** (`gemini`). Fungsi serverless ini memicu panggilan ke model **Google Gemini API** (`gemini-2.5-flash`) menggunakan rahasia `GEMINI_API_KEY` yang tersimpan aman di Supabase Secrets. Jika API Key tidak disetel, fungsi serverless akan mendeteksinya dan mengirim respon simulasi (mock fallback) terformat kembali ke frontend klien agar alur pengujian visual tetap berjalan lancar.
 
 ### Alur Data Sistem
 1.  **Pembuatan Catatan**: Pengguna menekan tombol "Create New Note" -> Memicu `createNote()` -> Objek catatan baru dengan ID unik (timestamp) diinisialisasi -> Disimpan ke LocalStorage -> Navigasi otomatis ke `/note/:id`.
@@ -290,9 +296,10 @@ Implementasi Notula berhasil merealisasikan seluruh kebutuhan utama yang direnca
 ### Kendala yang Berhasil Diatasi
 1.  **Keterbatasan Akses Navigasi Mobile**: Diselesaikan dengan merancang komponen navigasi *Bottom Sheet* yang meluncur dari dasar layar, sehingga memberikan akses penuh ke seluruh folder dan filter tanpa mengacaukan ruang visual BottomNav mobile.
 2.  **Sinkronisasi Search Bar Global**: Masalah sinkronisasi antara input pencarian TopNav dan DashboardPage diselesaikan menggunakan koordinasi berbasis query parameter URL (`?q=`), menjamin sinkronisasi instan terlepas dari asal halaman pencarian dipicu.
+3.  **Ketiadaan Penyimpanan Persisten Multi-Perangkat**: Sebelumnya, data catatan terikat pada localStorage peramban tunggal. Ini diselesaikan secara menyeluruh dengan memigrasikan penyimpanan ke **Supabase PostgreSQL** cloud, yang didukung autentikasi aman **Supabase Auth** dan perlindungan **Row Level Security (RLS)** untuk isolasi data.
 
 ### Sisa Kendala & Keterbatasan
-1.  **Ketiadaan Server Fisik**: Ketiadaan basis data server terpusat membuat data catatan saat ini hanya terikat pada satu peramban di satu perangkat saja (menggunakan LocalStorage).
+1.  **Ketergantungan Terhadap Ketersediaan Jaringan**: Karena kini mengandalkan Supabase cloud database untuk sinkronisasi data utama, beberapa fitur manajemen data memerlukan koneksi aktif ke internet, meskipun frontend tetap dibekali kemampuan fallback offline otomatis (ke LocalStorage) ketika tidak ada koneksi.
 
 ### Kelebihan Sistem
 *   **Kecepatan Luar Biasa**: Ketiadaan latensi jaringan membuat aplikasi terasa sangat cepat (*instantaneous*) saat berpindah halaman atau menyimpan berkas catatan.

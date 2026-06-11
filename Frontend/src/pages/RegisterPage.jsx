@@ -1,34 +1,62 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { supabase } from '../utils/supabaseClient.js'
+import { showToast } from '../utils/useToast.js'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [showMismatch, setShowMismatch] = useState(false)
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
 
   const passwordsMatch = password === confirmPassword
   const passwordLongEnough = password.length >= 6
 
   const handleConfirmChange = (e) => {
     setConfirmPassword(e.target.value)
-    // Show mismatch only after user has typed something in confirm field
     if (e.target.value.length > 0) {
       setShowMismatch(true)
     }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!passwordsMatch) {
+    if (!passwordsMatch || !passwordLongEnough) {
       setShowMismatch(true)
       return
     }
-    const formData = new FormData(e.target)
-    const name = formData.get('fullName') || 'Alex'
-    const email = formData.get('email') || 'alex@notula.app'
-    localStorage.setItem('notula_user', JSON.stringify({ name, email }))
-    navigate('/dashboard')
+
+    setIsLoading(true)
+    setError('')
+
+    const formData = new FormData(e.currentTarget)
+    const name = formData.get('fullName')
+    const email = formData.get('email')
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            fullName: name
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      localStorage.setItem('notula_user', JSON.stringify({ name, email }));
+      showToast('Registration successful! Welcome to Notula.', 'success');
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message);
+      showToast(err.message, 'error');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
@@ -52,6 +80,13 @@ export default function RegisterPage() {
 
         {/* Form Section */}
         <div className="p-8 pt-2">
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-error-container/20 border border-error/30 text-error text-body-sm flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm">error</span>
+              <span>{error}</span>
+            </div>
+          )}
+
           <form className="space-y-5" onSubmit={handleSubmit}>
             {/* Full Name */}
             <div className="flex flex-col space-y-2">
@@ -67,6 +102,7 @@ export default function RegisterPage() {
                   placeholder="Jane Doe" 
                   required 
                   type="text"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -85,6 +121,7 @@ export default function RegisterPage() {
                   placeholder="name@company.com" 
                   required 
                   type="email"
+                  disabled={isLoading}
                 />
               </div>
             </div>
@@ -109,6 +146,7 @@ export default function RegisterPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   minLength={6}
+                  disabled={isLoading}
                 />
               </div>
               {password.length > 0 && !passwordLongEnough && (
@@ -138,6 +176,7 @@ export default function RegisterPage() {
                   type="password"
                   value={confirmPassword}
                   onChange={handleConfirmChange}
+                  disabled={isLoading}
                 />
               </div>
               {showMismatch && !passwordsMatch && (
@@ -158,15 +197,15 @@ export default function RegisterPage() {
             <div className="pt-4">
               <button 
                 className={`w-full font-semibold text-label-md py-3.5 rounded-lg flex items-center justify-center gap-2 cursor-pointer border-none transition-all ${
-                  !passwordsMatch || !passwordLongEnough
+                  !passwordsMatch || !passwordLongEnough || isLoading
                     ? 'bg-outline-variant text-on-surface-variant/50 cursor-not-allowed'
                     : 'bg-primary text-on-primary hover:opacity-90'
                 }`}
                 type="submit"
-                disabled={!passwordsMatch || !passwordLongEnough}
+                disabled={!passwordsMatch || !passwordLongEnough || isLoading}
               >
-                <span>Register</span>
-                <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                <span>{isLoading ? 'Registering...' : 'Register'}</span>
+                {!isLoading && <span className="material-symbols-outlined text-[18px]">arrow_forward</span>}
               </button>
             </div>
           </form>
@@ -174,7 +213,7 @@ export default function RegisterPage() {
           <div className="mt-8 text-center pb-4">
             <p className="text-body-sm text-on-surface-variant m-0">
               Already have an account?{' '}
-              <Link to="/login" className="text-primary hover:underline transition-all text-label-md font-semibold ml-1 no-underline hover:underline">
+              <Link to="/login" className="text-primary hover:underline transition-all text-label-md font-semibold ml-1 no-underline">
                 Sign in
               </Link>
             </p>

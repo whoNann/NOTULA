@@ -3,30 +3,36 @@ import { useNavigate } from 'react-router-dom'
 import { getNotes } from '../utils/notesStore.js'
 import { getSettings, updateSetting, applyTheme } from '../utils/settingsStore.js'
 import { showToast } from '../utils/useToast.js'
+import { supabase } from '../utils/supabaseClient.js'
 
 export default function ProfilePage() {
   const navigate = useNavigate()
   const [stats, setStats] = useState({ noteCount: 0, wordCount: 0, charCount: 0 })
   const [settings, setSettings] = useState(getSettings())
-
-  // Read user data from localStorage (set during login/register)
-  const storedUser = (() => {
-    try {
-      const raw = localStorage.getItem('notula_user')
-      return raw ? JSON.parse(raw) : null
-    } catch { return null }
-  })()
-  const [userName] = useState(storedUser?.name || 'Guest User')
-  const [userEmail] = useState(storedUser?.email || 'guest@notula.app')
+  const [userName, setUserName] = useState('Guest User')
+  const [userEmail, setUserEmail] = useState('guest@notula.app')
 
   useEffect(() => {
-    const notes = getNotes()
-    const totalWords = notes.reduce((acc, n) => {
-      const words = n.content.trim() ? n.content.trim().split(/\s+/).length : 0
-      return acc + words
-    }, 0)
-    const totalChars = notes.reduce((acc, n) => acc + n.content.length, 0)
-    setStats({ noteCount: notes.length, wordCount: totalWords, charCount: totalChars })
+    const loadUserAndStats = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          setUserName(user.user_metadata?.fullName || user.email.split('@')[0])
+          setUserEmail(user.email)
+        }
+
+        const notes = await getNotes()
+        const totalWords = notes.reduce((acc, n) => {
+          const words = n.content.trim() ? n.content.trim().split(/\s+/).length : 0
+          return acc + words
+        }, 0)
+        const totalChars = notes.reduce((acc, n) => acc + n.content.length, 0)
+        setStats({ noteCount: notes.length, wordCount: totalWords, charCount: totalChars })
+      } catch (err) {
+        showToast('Failed to load profile details', 'error')
+      }
+    }
+    loadUserAndStats()
   }, [])
 
   const handleToggle = (key) => {
@@ -45,9 +51,14 @@ export default function ProfilePage() {
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem('notula_user')
-    navigate('/login')
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut()
+      localStorage.removeItem('notula_user')
+      navigate('/login')
+    } catch (err) {
+      showToast('Logout failed: ' + err.message, 'error')
+    }
   }
 
   const statCards = [

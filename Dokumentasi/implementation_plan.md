@@ -1,123 +1,74 @@
-# Notula Frontend — Lengkapi Semua UI & Seragamkan Layout
+# Rencana Migrasi ke Arsitektur Serverless Supabase
 
-## Status: 100% COMPLETED (LULUS PENGUJIAN) ✅
-*Seluruh rencana kerja di bawah ini telah berhasil direalisasikan sepenuhnya pada fase finalisasi frontend client-side.*
+Dokumen ini mendeskripsikan rencana implementasi arsitektur **Serverless Supabase** penuh untuk Notula, memindahkan seluruh otentikasi, basis data, dan proxy AI ke layanan terkelola Supabase.
 
-Melengkapi semua halaman UI untuk app **Notula - AI Note-taking**, menyeragamkan Sidebar/TopNav/BottomNav di semua halaman yang butuh, dan menambahkan halaman yang belum ada.
+## User Review Required
+
+> [!IMPORTANT]
+> **Kredensial Supabase Klien**: Anda perlu menyiapkan sebuah project Supabase dan meletakkan URL serta Anon Key pada file `.env` di Frontend:
+> - `VITE_SUPABASE_URL=https://[project-ref].supabase.co`
+> - `VITE_SUPABASE_ANON_KEY=[anon-key]`
+>
+> **Supabase Edge Function**: Kita akan membuat folder `supabase/functions/gemini/` berisi kode Deno TypeScript untuk memproses panggilan AI. Untuk mendeploy fungsi ini dan memasukkan API Key Gemini, Anda dapat menjalankan perintah berikut di terminal Anda setelah menginstal Supabase CLI:
+> 1. `supabase secrets set GEMINI_API_KEY=your_actual_gemini_key`
+> 2. `supabase functions deploy gemini`
+
+---
 
 ## Proposed Changes
 
-### 1. Shared Layout Component
+### 1. Integrasi Supabase SDK di Frontend
+Kita akan menghapus ketergantungan pada backend Node/Express lokal dan langsung menggunakan client-side SDK Supabase.
 
-Buat `AppLayout.jsx` yang membungkus halaman-halaman utama (Dashboard, Editor) supaya Sidebar, TopNav, BottomNav **konsisten** dan tidak perlu di-copy-paste di setiap page.
+#### [MODIFY] [Frontend/package.json](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/package.json)
+Memasang `@supabase/supabase-js`.
 
-#### [NEW] [AppLayout.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/components/AppLayout.jsx)
-- Membungkus `<Sidebar />`, `<TopNav />`, `<BottomNav />` + `<Outlet />` dari react-router
-- Semua halaman yang butuh nav akan menggunakan layout ini
-- Sidebar otomatis highlight item berdasarkan route aktif
+#### [NEW] [Frontend/.env](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/.env)
+Menyimpan variabel lingkungan `VITE_SUPABASE_URL` dan `VITE_SUPABASE_ANON_KEY`.
 
----
+#### [NEW] [supabaseClient.js](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/src/utils/supabaseClient.js)
+Inisialisasi klien SDK Supabase untuk digunakan di seluruh aplikasi.
 
-### 2. Landing Page (NEW)
+#### [MODIFY] [notesStore.js](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/src/utils/notesStore.js)
+Mengubah fungsi-fungsi store agar memanggil SDK Supabase:
+- `getNotes()`: Membaca tabel `notes` ter-filter `is_archived: false` diurutkan dari yang terbaru.
+- `createNote()`: Menyisipkan baris baru di tabel `notes` dengan `user_id` dari sesi Supabase Auth yang aktif.
+- `saveNote()`: Melakukan update baris berdasarkan ID.
+- `deleteNote()`: Melakukan operasi delete.
+- `summarizeNote()` / `fixGrammarNote()`: Memanggil Supabase Edge Function `gemini` menggunakan `supabase.functions.invoke('gemini', ...)`.
 
-#### [NEW] [LandingPage.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/pages/LandingPage.jsx)
-- Hero section dengan tagline + CTA (Login / Register)
-- Features section (3 fitur utama: AI Summarize, Dark Mode, Markdown Editor)
-- Footer sederhana
-- Menggunakan favicon.svg sebagai logo/icon
-- Tidak pakai Sidebar/TopNav (standalone page)
+#### [MODIFY] [LoginPage.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/src/pages/LoginPage.jsx) & [RegisterPage.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/src/pages/RegisterPage.jsx)
+Menggunakan `supabase.auth.signInWithPassword` dan `supabase.auth.signUp` untuk otentikasi pengguna langsung melalui Supabase Auth.
 
----
+#### [MODIFY] [AppLayout.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/src/components/AppLayout.jsx)
+Memeriksa status sesi otentikasi aktif menggunakan `supabase.auth.getSession()` untuk proteksi halaman (auth guard).
 
-### 3. Seragamkan Sidebar
-
-#### [MODIFY] [Sidebar.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/components/Sidebar.jsx)
-- Gunakan `useLocation()` + `<Link>` dari react-router untuk navigasi sesungguhnya
-- Tambah props `activePath` supaya highlight otomatis
-- Logout link ke `/login`
-
-#### [MODIFY] [TopNav.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/components/TopNav.jsx)
-- "New Note" button linking ke `/note/new`
-- Search bar sebagai controlled input (menerima props `onSearch`, `searchQuery`)
-
-#### [MODIFY] [BottomNav.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/components/BottomNav.jsx)
-- Gunakan `useLocation()` + `<Link>` supaya navigasi beneran jalan
-- Active state berdasarkan route
+#### [MODIFY] [ProfilePage.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/src/pages/ProfilePage.jsx)
+Membaca email pengguna dari data sesi aktif Supabase Auth, serta melakukan `supabase.auth.signOut()` saat logout.
 
 ---
 
-### 4. Dashboard Page — Fungsional CRUD
+### 2. Struktur Database & Edge Function di Supabase
+Kita akan menyiapkan file skema SQL dan kode fungsi untuk dideploy ke Supabase.
 
-#### [MODIFY] [DashboardPage.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/pages/DashboardPage.jsx)
-- Hapus `sampleNotes` hardcoded → load dari `localStorage`
-- Search filter berdasarkan judul/konten note
-- Hapus Sidebar/TopNav/BottomNav yang di-import langsung (pakai dari AppLayout)
-- "Create New Note" membuat note baru di localStorage & redirect ke editor
-- Delete note dari card
+#### [NEW] [schema.sql](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Backend/schema.sql)
+Skema DDL PostgreSQL untuk dijalankan di SQL Editor Supabase:
+- Membuat tabel `public.notes` ber-relasi ke `auth.users`.
+- Mengaktifkan Row Level Security (RLS) agar user hanya bisa membaca dan memanipulasi catatannya sendiri.
 
----
-
-### 5. Editor Page — Konsisten Layout
-
-#### [MODIFY] [EditorPage.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/pages/EditorPage.jsx)
-- Load/save note dari/ke localStorage berdasarkan `:id` param
-- Auto-save ke localStorage saat mengetik
-- Toolbar formatting (Bold, Italic, Heading) fungsional — insert markdown syntax
-- Sidebar/TopNav muncul konsisten (via AppLayout)
-
----
-
-### 6. Halaman Tambahan
-
-#### [NEW] [ProfilePage.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/pages/ProfilePage.jsx)
-- Tampilkan info user (nama, email) dari localStorage
-- Statistik sederhana (jumlah notes, total words)
-- Tombol logout
-
-#### [NEW] [NotFoundPage.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/pages/NotFoundPage.jsx)
-- 404 page yang sesuai design system
-- Link kembali ke Dashboard
-
----
-
-### 7. Notes Helper (Data Layer)
-
-#### [NEW] [notesStore.js](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/utils/notesStore.js)
-- Helper functions: `getNotes()`, `getNote(id)`, `saveNote(note)`, `deleteNote(id)`, `createNote()`
-- Semua pakai `localStorage` sebagai storage
-- Seed data default kalau kosong (3 sample notes)
-
----
-
-### 8. Routing & App.jsx Update
-
-#### [MODIFY] [App.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/App.jsx)
-- Landing page di `/`
-- Login di `/login`, Register di `/register`
-- Dashboard di `/dashboard` (wrapped in AppLayout)
-- Editor di `/note/:id` (wrapped in AppLayout)
-- Profile di `/profile` (wrapped in AppLayout)
-- 404 catch-all `*`
-
----
-
-### 9. CSS Enhancements
-
-#### [MODIFY] [index.css](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/index.css)
-- Tambah animasi fade-in untuk page transitions
-- Tambah hover/active states yang lebih smooth
-- Landing page specific styles (gradient hero, feature cards)
+#### [NEW] [index.ts](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/supabase/functions/gemini/index.ts)
+Kode Supabase Edge Function menggunakan Deno & TypeScript untuk menerima request dari frontend klien, menambahkan `GEMINI_API_KEY` secara aman, memanggil API Google Gemini, dan mengembalikan respon ringkasan/perbaikan tata bahasa.
 
 ---
 
 ## Verification Plan
 
+### Automated/Edge Function Tests
+- Lakukan pemanggilan Edge Function secara lokal menggunakan Supabase CLI:
+  `supabase start` dan `supabase functions serve`
+
 ### Manual Verification
-- Jalankan `npm run dev` dan cek semua halaman
-- Verifikasi navigasi antar halaman berjalan smooth
-- Verifikasi Sidebar/TopNav/BottomNav konsisten di Dashboard, Editor, Profile
-- Verifikasi CRUD notes (buat, edit, hapus note)
-- Verifikasi search filter di Dashboard
-- Verifikasi responsive (mobile vs desktop)
-- Verifikasi Landing Page tampil di `/`
-- Verifikasi 404 page muncul untuk route tidak dikenal
+1. Lakukan pendaftaran pengguna baru di halaman Register. Pengguna akan langsung terdaftar di Supabase Auth (dapat diperiksa di dashboard Supabase -> Authentication).
+2. Buat catatan baru dan pastikan baris data masuk ke tabel `notes` di dashboard Supabase.
+3. Jalankan tombol Summarize dan Fix Grammar di editor untuk memanggil Supabase Edge Function.
+4. Lakukan logout dan verifikasi bahwa sesi Supabase Auth telah dibersihkan sepenuhnya.

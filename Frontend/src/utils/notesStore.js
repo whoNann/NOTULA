@@ -1,3 +1,5 @@
+import { supabase } from './supabaseClient';
+
 const STORAGE_KEY = 'notula_notes'
 
 const defaultNotes = [
@@ -47,7 +49,17 @@ const defaultNotes = [
   },
 ]
 
-function loadNotes() {
+function hasSession() {
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i)
+    if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+      return true
+    }
+  }
+  return false
+}
+
+function loadNotesLocal() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) {
@@ -55,7 +67,6 @@ function loadNotes() {
       return [...defaultNotes]
     }
     const notes = JSON.parse(raw)
-    // Migrate old notes that don't have new fields
     const migrated = notes.map((n) => ({
       isFavorite: false,
       isArchived: false,
@@ -68,38 +79,136 @@ function loadNotes() {
   }
 }
 
-function persist(notes) {
+function persistLocal(notes) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(notes))
 }
 
-export function getNotes() {
-  return loadNotes()
-    .filter((n) => !n.isArchived)
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+function mapDbNote(dbNote) {
+  if (!dbNote) return null
+  return {
+    id: dbNote.id,
+    title: dbNote.title || '',
+    content: dbNote.content || '',
+    notebook: dbNote.notebook || '',
+    isFavorite: dbNote.is_favorite,
+    isArchived: dbNote.is_archived,
+    aiTag: dbNote.ai_tag,
+    createdAt: dbNote.created_at,
+    updatedAt: dbNote.updated_at
+  }
 }
 
-export function getNote(id) {
-  return loadNotes().find((n) => n.id === id) || null
+// Get all active (non-archived) notes
+export async function getNotes() {
+  if (hasSession()) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_archived', false)
+      .order('updated_at', { ascending: false })
+    if (error) throw error
+    return data.map(mapDbNote)
+  } else {
+    return loadNotesLocal()
+      .filter((n) => !n.isArchived)
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+  }
 }
 
-export function getAllNotes() {
-  return loadNotes().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+// Get a single note by ID
+export async function getNote(id) {
+  if (hasSession()) {
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+    if (error) throw error
+    return mapDbNote(data)
+  } else {
+    return loadNotesLocal().find((n) => n.id === id) || null
+  }
 }
 
-export function getFavorites() {
-  return loadNotes()
-    .filter((n) => n.isFavorite && !n.isArchived)
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+// Get all notes regardless of status
+export async function getAllNotes() {
+  if (hasSession()) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+    if (error) throw error
+    return data.map(mapDbNote)
+  } else {
+    return loadNotesLocal().sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+  }
 }
 
-export function getArchived() {
-  return loadNotes()
-    .filter((n) => n.isArchived)
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+// Get user favorite notes
+export async function getFavorites() {
+  if (hasSession()) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_favorite', true)
+      .eq('is_archived', false)
+      .order('updated_at', { ascending: false })
+    if (error) throw error
+    return data.map(mapDbNote)
+  } else {
+    return loadNotesLocal()
+      .filter((n) => n.isFavorite && !n.isArchived)
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+  }
 }
 
-export function getNotebooks() {
-  const notes = loadNotes().filter((n) => !n.isArchived && n.notebook)
+// Get archived notes
+export async function getArchived() {
+  if (hasSession()) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_archived', true)
+      .order('updated_at', { ascending: false })
+    if (error) throw error
+    return data.map(mapDbNote)
+  } else {
+    return loadNotesLocal()
+      .filter((n) => n.isArchived)
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
+  }
+}
+
+// Group active notes by notebooks
+export async function getNotebooks() {
+  let notes = []
+  if (hasSession()) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return {}
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_archived', false)
+      .neq('notebook', '')
+    if (error) throw error
+    notes = data.map(mapDbNote)
+  } else {
+    notes = loadNotesLocal().filter((n) => !n.isArchived && n.notebook)
+  }
+
   const notebooks = {}
   notes.forEach((n) => {
     if (!notebooks[n.notebook]) {
@@ -107,6 +216,7 @@ export function getNotebooks() {
     }
     notebooks[n.notebook].push(n)
   })
+  
   // Sort each notebook's notes
   Object.keys(notebooks).forEach((key) => {
     notebooks[key].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
@@ -114,68 +224,164 @@ export function getNotebooks() {
   return notebooks
 }
 
-export function getNotesByNotebook(notebook) {
-  return loadNotes()
-    .filter((n) => n.notebook === notebook && !n.isArchived)
-    .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-}
-
-export function createNote(notebook = '') {
-  const notes = loadNotes()
-  const note = {
-    id: Date.now().toString(),
-    title: '',
-    content: '',
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    aiTag: null,
-    isFavorite: false,
-    isArchived: false,
-    notebook: notebook,
+// Get notes belonging to a specific notebook
+export async function getNotesByNotebook(notebook) {
+  if (hasSession()) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('notebook', notebook)
+      .eq('is_archived', false)
+      .order('updated_at', { ascending: false })
+    if (error) throw error
+    return data.map(mapDbNote)
+  } else {
+    return loadNotesLocal()
+      .filter((n) => n.notebook === notebook && !n.isArchived)
+      .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
   }
-  notes.push(note)
-  persist(notes)
-  return note
 }
 
-export function saveNote(id, updates) {
-  const notes = loadNotes()
-  const idx = notes.findIndex((n) => n.id === id)
-  if (idx === -1) return null
-  notes[idx] = { ...notes[idx], ...updates, updatedAt: new Date().toISOString() }
-  persist(notes)
-  return notes[idx]
+// Create new note
+export async function createNote(notebook = '') {
+  if (hasSession()) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error("User not authenticated")
+    const noteId = Date.now().toString() + Math.random().toString(36).substring(2, 6)
+    const { data, error } = await supabase
+      .from('notes')
+      .insert({
+        id: noteId,
+        user_id: user.id,
+        title: '',
+        content: '',
+        notebook: notebook
+      })
+      .select()
+      .single()
+    if (error) throw error
+    return mapDbNote(data)
+  } else {
+    const notes = loadNotesLocal()
+    const note = {
+      id: Date.now().toString(),
+      title: '',
+      content: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      aiTag: null,
+      isFavorite: false,
+      isArchived: false,
+      notebook: notebook,
+    }
+    notes.push(note)
+    persistLocal(notes)
+    return note
+  }
 }
 
-export function deleteNote(id) {
-  const notes = loadNotes().filter((n) => n.id !== id)
-  persist(notes)
-  return notes
+// Update an existing note
+export async function saveNote(id, updates) {
+  if (hasSession()) {
+    const dbUpdates = {}
+    if (updates.title !== undefined) dbUpdates.title = updates.title
+    if (updates.content !== undefined) dbUpdates.content = updates.content
+    if (updates.notebook !== undefined) dbUpdates.notebook = updates.notebook
+    if (updates.isFavorite !== undefined) dbUpdates.is_favorite = updates.isFavorite
+    if (updates.isArchived !== undefined) dbUpdates.is_archived = updates.isArchived
+    if (updates.aiTag !== undefined) dbUpdates.ai_tag = updates.aiTag
+    dbUpdates.updated_at = new Date().toISOString()
+
+    const { data, error } = await supabase
+      .from('notes')
+      .update(dbUpdates)
+      .eq('id', id)
+      .select()
+      .maybeSingle()
+    if (error) throw error
+    return mapDbNote(data)
+  } else {
+    const notes = loadNotesLocal()
+    const idx = notes.findIndex((n) => n.id === id)
+    if (idx === -1) return null
+    notes[idx] = { ...notes[idx], ...updates, updatedAt: new Date().toISOString() }
+    persistLocal(notes)
+    return notes[idx]
+  }
 }
 
-export function toggleFavorite(id) {
-  const notes = loadNotes()
-  const idx = notes.findIndex((n) => n.id === id)
-  if (idx === -1) return null
-  notes[idx].isFavorite = !notes[idx].isFavorite
-  persist(notes)
-  return notes[idx]
+// Delete a note
+export async function deleteNote(id) {
+  if (hasSession()) {
+    const { error } = await supabase
+      .from('notes')
+      .delete()
+      .eq('id', id)
+    if (error) throw error
+    return await getAllNotes()
+  } else {
+    const notes = loadNotesLocal().filter((n) => n.id !== id)
+    persistLocal(notes)
+    return notes
+  }
 }
 
-export function toggleArchive(id) {
-  const notes = loadNotes()
-  const idx = notes.findIndex((n) => n.id === id)
-  if (idx === -1) return null
-  notes[idx].isArchived = !notes[idx].isArchived
-  persist(notes)
-  return notes[idx]
+// Toggle favorite status
+export async function toggleFavorite(id) {
+  if (hasSession()) {
+    const note = await getNote(id)
+    if (!note) return null
+    return await saveNote(id, { isFavorite: !note.isFavorite })
+  } else {
+    const notes = loadNotesLocal()
+    const idx = notes.findIndex((n) => n.id === id)
+    if (idx === -1) return null
+    notes[idx].isFavorite = !notes[idx].isFavorite
+    persistLocal(notes)
+    return notes[idx]
+  }
 }
 
-export function searchNotes(query) {
+// Toggle archive status
+export async function toggleArchive(id) {
+  if (hasSession()) {
+    const note = await getNote(id)
+    if (!note) return null
+    return await saveNote(id, { isArchived: !note.isArchived })
+  } else {
+    const notes = loadNotesLocal()
+    const idx = notes.findIndex((n) => n.id === id)
+    if (idx === -1) return null
+    notes[idx].isArchived = !notes[idx].isArchived
+    persistLocal(notes)
+    return notes[idx]
+  }
+}
+
+// Search notes
+export async function searchNotes(query) {
   const q = query.toLowerCase().trim()
   if (!q) return getNotes()
-  return loadNotes()
-    .filter((n) => !n.isArchived)
+
+  let notes = []
+  if (hasSession()) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_archived', false)
+    if (error) throw error
+    notes = data.map(mapDbNote)
+  } else {
+    notes = loadNotesLocal().filter((n) => !n.isArchived)
+  }
+
+  return notes
     .filter(
       (n) =>
         n.title.toLowerCase().includes(q) ||
@@ -184,6 +390,36 @@ export function searchNotes(query) {
     .sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
 }
 
+// Helper: Summarize note using Supabase Edge Function
+export async function summarizeNote(text) {
+  if (hasSession()) {
+    const { data, error } = await supabase.functions.invoke('gemini', {
+      body: { text, task: 'summarize' }
+    })
+    if (error) throw error
+    return data.result
+  } else {
+    // Local fallback simulations if offline
+    return `### AI Summary (Offline Simulation)
+* **Summary capability active:** This is an offline simulation.
+* **Backend Connection:** Please log in to your account to utilize real Google Gemini models via Supabase Edge Functions.`;
+  }
+}
+
+// Helper: Fix grammar note using Supabase Edge Function
+export async function fixGrammarNote(text) {
+  if (hasSession()) {
+    const { data, error } = await supabase.functions.invoke('gemini', {
+      body: { text, task: 'grammar' }
+    })
+    if (error) throw error
+    return data.result
+  } else {
+    return `${text}\n\n*(AI Note: Grammar check simulation - log in to use real Google Gemini via Supabase)*`;
+  }
+}
+
+// Date formatter helper
 export function formatTimeAgo(dateStr) {
   const date = new Date(dateStr)
   const now = new Date()

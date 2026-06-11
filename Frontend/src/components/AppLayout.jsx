@@ -1,10 +1,25 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import Sidebar from './Sidebar.jsx'
 import TopNav from './TopNav.jsx'
 import BottomNav from './BottomNav.jsx'
 import Toast from './Toast.jsx'
 
+import { supabase } from '../utils/supabaseClient.js'
+
 export default function AppLayout() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        navigate('/login', { replace: true })
+      }
+    }
+    checkSession()
+  }, [navigate])
+
   return (
     <div className="text-on-background min-h-screen flex flex-col md:flex-row antialiased">
       {/* Desktop Sidebar */}

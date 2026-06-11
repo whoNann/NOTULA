@@ -340,22 +340,20 @@ export default function EditorPage() {
           <div className="flex items-center bg-surface-container rounded-lg border border-outline-variant/30 overflow-hidden">
             <button
               onClick={() => setViewMode('edit')}
-              className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold cursor-pointer border-none transition-colors ${
-                viewMode === 'edit'
+              className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold cursor-pointer border-none transition-colors ${viewMode === 'edit'
                   ? 'bg-primary/15 text-primary'
                   : 'bg-transparent text-on-surface-variant hover:text-on-surface'
-              }`}
+                }`}
             >
               <span className="material-symbols-outlined text-[14px]">edit</span>
               <span className="hidden sm:inline">Edit</span>
             </button>
             <button
               onClick={() => setViewMode('preview')}
-              className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold cursor-pointer border-none transition-colors ${
-                viewMode === 'preview'
+              className={`flex items-center gap-1 px-2.5 py-1 text-xs font-semibold cursor-pointer border-none transition-colors ${viewMode === 'preview'
                   ? 'bg-primary/15 text-primary'
                   : 'bg-transparent text-on-surface-variant hover:text-on-surface'
-              }`}
+                }`}
             >
               <span className="material-symbols-outlined text-[14px]">visibility</span>
               <span className="hidden sm:inline">Preview</span>
