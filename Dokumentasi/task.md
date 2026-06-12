@@ -15,3 +15,10 @@
 
 ## Pengujian & Verifikasi
 - [x] 10. Verifikasi pendaftaran, masuk, CRUD catatan, dan pemrosesan AI secara penuh
+
+## Deployment Vercel (UAS Perubahan)
+- [x] 11. Buat berkas `Frontend/vercel.json` untuk pengalihan SPA routing
+- [x] 12. Perbarui `README.md` dengan panduan detail deployment Vercel
+- [x] 13. Perbarui `Dokumentasi/LAPORAN.md` terkait pemetaan hosting di Vercel
+- [x] 14. Jalankan pengujian build frontend lokal untuk memverifikasi proses build Vercel
+

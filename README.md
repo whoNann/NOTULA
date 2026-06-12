@@ -59,6 +59,27 @@ Ikuti langkah-langkah di bawah ini untuk menjalankan aplikasi Notula di komputer
 
 ---
 
+## 🚀 Deployment ke Vercel
+
+Aplikasi frontend **Notula** siap untuk dideploy ke **Vercel** dengan langkah-langkah konfigurasi berikut:
+
+1. **Buat Project Baru di Vercel**:
+   - Hubungkan akun GitHub/GitLab Anda ke Vercel.
+   - Pilih repositori `tubes-kapita-selekta-kelompok2`.
+2. **Konfigurasi Project Settings**:
+   - **Root Directory**: Ubah/setel ke `Frontend`. (Ini sangat penting karena seluruh kode sumber React + Vite berada di dalam subdirektori `Frontend`).
+   - **Build Command**: `npm run build` (bawaan Vite).
+   - **Output Directory**: `dist` (bawaan Vite).
+3. **Setel Environment Variables**:
+   Pada menu *Environment Variables* di dashboard Vercel, masukkan variabel berikut:
+   - `VITE_SUPABASE_URL` = `https://[project-ref].supabase.co`
+   - `VITE_SUPABASE_ANON_KEY` = `your_supabase_anon_key`
+4. **Deploy**:
+   - Klik **Deploy**. Vercel akan secara otomatis membangun aplikasi dan menyediakan tautan URL hosting HTTPS yang aman.
+   - Berkas [vercel.json](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/vercel.json) di dalam folder `Frontend` otomatis menangani pengalihan rute (*SPA client-side routing rewrites*), menjamin tidak ada error 404 saat halaman di-refresh.
+
+---
+
 ## 🧪 Dokumentasi Utama & Laporan UAS
 
 Seluruh berkas administrasi dan laporan proyek dapat diakses melalui folder **[Dokumentasi/](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Dokumentasi/)**:

@@ -40,3 +40,24 @@ Migrasi penuh aplikasi Notula dari arsitektur lokal/offline-first ke arsitektur 
 *   Pembuatan Catatan & Auto-save -> Baris baru tersimpan aman di tabel `public.notes` di cloud PostgreSQL Supabase.
 *   Edge Function AI Summarize -> Terpanggil dengan parameter `{ text, task: 'summarize' }`.
 *   Sign Out -> Sesi Supabase Auth dibersihkan dan dialihkan kembali ke `/login`.
+
+---
+
+## Vercel Deployment & SPA Routing (Updated)
+
+### 1. SPA Routing Configuration
+*   **[vercel.json](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/vercel.json)**: Ditambahkan konfigurasi routing baru untuk Vercel agar mengalihkan semua sub-rute (seperti `/dashboard`, `/profile`, `/login`) kembali ke `index.html` (*client-side routing rewrite*), mencegah error 404 saat melakukan refresh halaman di browser.
+
+### 2. Panduan Integrasi Lingkungan Vercel
+*   **Root Directory**: Setel ke subdirektori `Frontend` saat melakukan import repositori di dashboard Vercel.
+*   **Environment Variables**: Masukkan kunci akses Supabase pada dashboard Vercel:
+    *   `VITE_SUPABASE_URL` = URL Proyek Supabase
+    *   `VITE_SUPABASE_ANON_KEY` = Kunci Anonim Supabase
+
+### 3. Hasil Verifikasi Kompilasi (Build Verification) ✅
+*   Menjalankan perintah `npm run build` di dalam folder `Frontend`. Proses kompilasi berjalan sukses 100% tanpa kesalahan:
+    *   `dist/index.html` (1.53 kB)
+    *   `dist/assets/index-CPYpkSen.css` (57.05 kB)
+    *   `dist/assets/index-DF81UBWu.js` (510.49 kB)
+    *   Waktu bangun: 397 milidetik.
+

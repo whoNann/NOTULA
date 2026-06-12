@@ -72,3 +72,17 @@ Kode Supabase Edge Function menggunakan Deno & TypeScript untuk menerima request
 2. Buat catatan baru dan pastikan baris data masuk ke tabel `notes` di dashboard Supabase.
 3. Jalankan tombol Summarize dan Fix Grammar di editor untuk memanggil Supabase Edge Function.
 4. Lakukan logout dan verifikasi bahwa sesi Supabase Auth telah dibersihkan sepenuhnya.
+
+---
+
+## Rencana Tambahan: Deployment ke Vercel (UAS Perubahan)
+
+### Proposed Changes
+1. **Buat File `Frontend/vercel.json`**: Menambahkan konfigurasi SPA routing rewrite rule untuk mengarahkan semua path URL virtual kembali ke `index.html`.
+2. **Perbarui `README.md`**: Menulis instruksi setting *Root Directory* dan *Environment Variables* di Vercel.
+3. **Perbarui `Dokumentasi/LAPORAN.md`**: Menyesuaikan dokumen arsitektur dan link dengan platform deployment yang aktif.
+
+### Verification Plan
+1. Jalankan `npm run build` di folder `Frontend` untuk memastikan build produksi lokal berhasil tanpa error.
+2. Pastikan file `vercel.json` tersusun dengan benar di bawah `Frontend`.
+

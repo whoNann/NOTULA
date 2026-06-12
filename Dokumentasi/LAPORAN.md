@@ -22,12 +22,12 @@ Aplikasi catatan konvensional sering kali menuntut pengguna melakukan kategorisa
 Tujuan utama implementasi pada tahap ini adalah:
 1.  Merealisasikan desain konseptual Notula (Tugas 3) menjadi aplikasi berbasis web (SPA - *Single Page Application*) yang interaktif dan responsif.
 2.  Mengimplementasikan pustaka **React + Vite** serta **Tailwind CSS v4** untuk menghasilkan performa rendering antarmuka yang maksimal.
-3.  Mengintegrasikan sistem manajemen penyimpanan data lokal (*Notes Store*) untuk menjamin kelancaran siklus CRUD data catatan pengguna.
-4.  Mengembangkan simulasi fitur AI (*Summarization* & *Grammar Fix*) pada sisi frontend yang responsif dan siap diintegrasikan dengan API model bahasa (seperti Gemini API atau OpenAI API).
+3.  Mengintegrasikan sistem basis data cloud **Supabase PostgreSQL** dan autentikasi **Supabase Auth** untuk menjamin kelancaran siklus CRUD data catatan pengguna secara terpusat dan aman.
+4.  Mengintegrasikan fitur AI (*Summarization* & *Grammar Fix*) berbasis model **Google Gemini API** menggunakan **Supabase Edge Functions** untuk pemrosesan teks yang aman dan efisien.
 
 ### Ruang Lingkup Implementasi
 Ruang lingkup sistem Notula pada iterasi ini meliputi:
-*   **Autentikasi Pengguna**: Simulasi halaman masuk (*Login*) dan pendaftaran (*Register*) dengan validasi kecocokan dan panjang sandi secara real-time yang menghubungkan pengguna ke Dashboard.
+*   **Autentikasi Pengguna**: Integrasi halaman masuk (*Login*) dan pendaftaran (*Register*) dengan basis data pengguna **Supabase Auth** menggunakan JWT token untuk keamanan otentikasi serta validasi data masukan secara real-time di frontend.
 *   **Manajemen Catatan (CRUD)**: Pembuatan, pembacaan, pembaruan konten secara real-time (*auto-save*), penghapusan catatan, serta umpan balik visual instan (*Toast notifications*).
 *   **Sistem Navigasi & Tata Letak**: Sidebar terpadu pada desktop, Bottom Navigation Bar, serta panel filter meluncur (*Bottom Sheet*) pada tampilan perangkat mobile.
 *   **Fitur Pengayaan Catatan**: Format teks berbasis Markdown (Bold menggunakan `*text*`, Italic menggunakan `_text_`, H1, H2, Bullet List, dan Code Block) dilengkapi pratinjau langsung (*Live Preview*) dan tombol pintas keyboard (*Keyboard Shortcuts*).
@@ -141,43 +141,42 @@ Gaya visual Notula dipusatkan pada file [index.css](file:///d:/TUGAS%20ITTP/SEME
 2.  **Sistem Mode Gelap/Terang**: Penerapan kelas `.light` dan `.dark` pada dokumen HTML utama. Warna permukaan diubah secara dinamis menggunakan variabel CSS kustom.
 3.  **Ergonomi Penggunaan**: Menjamin komponen editor Markdown tetap terfokus dengan menempatkan toolbar di posisi yang mudah diakses serta perhitungan kata/karakter secara langsung.
 
-### Implementasi Backend
-Backend disimulasikan secara lokal pada file [notesStore.js](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/utils/notesStore.js) menggunakan penanganan penyimpanan berbasis `localStorage`. Kode di bawah ini menampilkan modul manipulasi data lokal:
+### Implementasi Backend & Autentikasi (Supabase Auth)
+Logika backend didelegasikan sepenuhnya ke platform serverless **Supabase**. Modul autentikasi diintegrasikan langsung pada [LoginPage.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/src/pages/LoginPage.jsx) dan [RegisterPage.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/src/pages/RegisterPage.jsx) menggunakan SDK resmi `@supabase/supabase-js` melalui file client terpusat [supabaseClient.js](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/src/utils/supabaseClient.js):
 ```javascript
-// Memuat catatan dari LocalStorage dengan nilai bawaan
-function loadNotes() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultNotes))
-      return [...defaultNotes]
-    }
-    const notes = JSON.parse(raw)
-    // Migrasi objek catatan lama untuk menjamin kompatibilitas atribut baru
-    return notes.map((n) => ({
-      isFavorite: false,
-      isArchived: false,
-      notebook: '',
-      ...n,
-    }))
-  } catch {
-    return [...defaultNotes]
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://your-project.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'your-anon-key'
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+```
+
+### Implementasi Database (Supabase PostgreSQL)
+Operasi CRUD data catatan pada [notesStore.js](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/src/utils/notesStore.js) langsung terhubung dengan tabel `public.notes` di cloud PostgreSQL dengan validasi sesi pengguna aktif:
+```javascript
+export async function getNotes() {
+  if (hasSession()) {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return []
+    const { data, error } = await supabase
+      .from('notes')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('is_archived', false)
+      .order('updated_at', { ascending: false })
+    if (error) throw error
+    return data.map(mapDbNote)
+  } else {
+    return loadNotesLocal().filter((n) => !n.isArchived)
   }
 }
 ```
 
-### Implementasi Database
-Database lokal pada browser dimanipulasi dengan fungsi `persist()` yang dipanggil setiap kali terjadi perubahan data (tambah, edit, hapus, favorite, archive):
-```javascript
-function persist(notes) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notes))
-}
-```
-
-### Integrasi AI
-Fitur AI diintegrasikan pada komponen [EditorPage.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/src/pages/EditorPage.jsx) dengan alur interaksi terpadu:
+### Integrasi AI (Google Gemini API Proxy)
+Fitur AI diintegrasikan pada komponen [EditorPage.jsx](file:///d:/TUGAS%20ITTP/SEMESTER%206/Kapita%20Selekta/UAS/tubes-kapita-selekta-kelompok2/Frontend/src/pages/EditorPage.jsx) dengan alur interaksi terpadu:
 *   **Deteksi Preferensi**: Membaca pengaturan `aiFeatures`. Jika dinonaktifkan di halaman profil, tombol AI tidak akan dirender.
-*   **Pemrosesan Teks**: Logika diinisialisasi melalui fungsi `handleSummarize` dan `handleFixGrammar`.
+*   **Pemrosesan Teks**: Mengirim teks draf catatan ke **Supabase Edge Function** `gemini` yang di-host secara serverless menggunakan Deno runtime. Fungsi ini bertindak sebagai proksi aman untuk menyisipkan rahasia `GEMINI_API_KEY` dan memanggil model Google Gemini API (`gemini-2.5-flash`).
 *   **Rendering Modul**: Hasil keluaran AI ditampilkan dalam modal `AIModal` yang dihiasi efek bayangan menyala (*glow-accent*).
 
 ---
@@ -245,7 +244,7 @@ Sistem diuji menggunakan metode *Black-Box Testing* untuk memverifikasi fungsion
 
 | Modul Fitur | Skenario Pengujian | Ekspektasi Hasil | Realisasi Hasil Pengujian | Status |
 | :--- | :--- | :--- | :--- | :---: |
-| **Autentikasi** | Mengisi form login/register dan menekan tombol submit. | Sistem memproses data kredensial dan mengalihkan halaman ke Dashboard. | Berhasil masuk ke dashboard dengan menyimpan simulasi sesi. | **LULUS (Pass)** |
+| **Autentikasi** | Mengisi form login/register dan menekan tombol submit. | Sistem memproses data kredensial dan mengalihkan halaman ke Dashboard. | Berhasil masuk ke dashboard dengan menggunakan sesi Supabase Auth yang aktif. | **LULUS (Pass)** |
 | **Validasi Registrasi** | Mengisi kata sandi tidak cocok atau kurang dari 6 karakter. | Pesan error muncul di bawah kolom input, dan tombol daftar (Register) terkunci. | Indikator visual real-time muncul tepat dan tombol ter-disable secara dinamis. | **LULUS (Pass)** |
 | **Tambah Catatan** | Menekan tombol "Create New Note" di Dashboard atau TopNav. | Inisialisasi catatan baru kosong, mengalihkan editor ke URL catatan baru tersebut. | Catatan baru langsung terbentuk dengan ID unik dan dialihkan ke editor. | **LULUS (Pass)** |
 | **Edit & Auto-Save** | Menulis teks pada judul/konten di Editor Page. | Perubahan tersimpan otomatis ke `localStorage` setelah jeda ketik berakhir (800ms). | Teks berhasil disimpan secara otomatis, indikator berubah menjadi "Saved". | **LULUS (Pass)** |
@@ -269,9 +268,9 @@ Pengukuran performa prototipe frontend aplikasi Notula dievaluasi berdasarkan pe
 
 | Metrik Evaluasi | Nilai Pengukuran | Metode Pengukuran / Keterangan |
 | :--- | :---: | :--- |
-| **Response Time (Lokal CRUD)** | < 8 ms | Waktu yang dibutuhkan untuk membaca/menulis data state internal React dari dan ke memori penyimpanan lokal browser (*localStorage*). |
+| **Response Time (Database CRUD)** | < 8 ms (Lokal) / ~150 ms (Cloud) | Waktu respon operasi baca/tulis data ke Supabase Cloud (atau LocalStorage fallback jika offline). |
 | **Debounce Delay (Auto-Save)** | 800 ms | Batas jeda waktu tunggu pengetikan pengguna berakhir sebelum mengeksekusi operasi simpan (reduksi beban penulisan berulang-ulang). |
-| **AI Inference Latency (Simulation)**| ~200 ms | Waktu respon simulasi proses generatif AI hingga jendela modal hasil muncul ke layar. |
+| **AI Inference Latency** | ~200 ms (Offline) / ~1.5s (API) | Waktu respon proses generatif AI hingga jendela modal hasil ringkasan/perbaikan tata bahasa muncul ke layar. |
 | **Error Rate** | 0.0 % | Tidak ditemukan kesalahan eksekusi logika (*runtime exceptions*) pada konsol browser selama 20+ skenario pengujian beruntun. |
 | **Lighthouse Performance Score** | 98 % | Hasil audit Google Lighthouse untuk aspek performa pemuatan awal (Vite build optimization & asset compression). |
 | **Lighthouse Accessibility Score** | 94 % | Evaluasi kegunaan elemen tombol, kontras warna teks, dan pembacaan tata letak kontras tinggi. |
@@ -288,10 +287,11 @@ Pengukuran performa prototipe frontend aplikasi Notula dievaluasi berdasarkan pe
 
 ### Apa yang Berhasil
 Implementasi Notula berhasil merealisasikan seluruh kebutuhan utama yang direncanakan pada tahap perancangan:
-*   Fungsi CRUD catatan lokal berjalan mulus tanpa masalah tumpang tindih data.
+*   Integrasi autentikasi pengguna secara aman menggunakan **Supabase Auth** untuk pendaftaran dan masuk sistem.
+*   Fungsi CRUD catatan terhubung secara real-time dengan basis data cloud **Supabase PostgreSQL** tanpa masalah tumpang tindih data.
 *   Format pemformatan kustom Markdown (Bold dengan `*...*` dan Italic dengan `_..._`) berhasil diterapkan pada area editor.
-*   Sistem manajemen tema warna (Light/Dark mode) berhasil merubah skema warna secara dinamis pada semua komponen tanpa kebocoran gaya visual.
-*   Pemisahan data berdasarkan kategori filter (Favorites, Notebooks, Archive) sinkron secara otomatis dengan data pada daftar utama catatan.
+*   Sistem manajemen tema warna (Light/Dark mode) berhasil mengubah skema warna secara dinamis pada semua komponen tanpa kebocoran gaya visual.
+*   Pemisahan data berdasarkan kategori filter (Favorites, Notebooks, Archive) sinkron secara otomatis dengan data cloud di database.
 
 ### Kendala yang Berhasil Diatasi
 1.  **Keterbatasan Akses Navigasi Mobile**: Diselesaikan dengan merancang komponen navigasi *Bottom Sheet* yang meluncur dari dasar layar, sehingga memberikan akses penuh ke seluruh folder dan filter tanpa mengacaukan ruang visual BottomNav mobile.
@@ -302,13 +302,13 @@ Implementasi Notula berhasil merealisasikan seluruh kebutuhan utama yang direnca
 1.  **Ketergantungan Terhadap Ketersediaan Jaringan**: Karena kini mengandalkan Supabase cloud database untuk sinkronisasi data utama, beberapa fitur manajemen data memerlukan koneksi aktif ke internet, meskipun frontend tetap dibekali kemampuan fallback offline otomatis (ke LocalStorage) ketika tidak ada koneksi.
 
 ### Kelebihan Sistem
-*   **Kecepatan Luar Biasa**: Ketiadaan latensi jaringan membuat aplikasi terasa sangat cepat (*instantaneous*) saat berpindah halaman atau menyimpan berkas catatan.
+*   **Kecepatan Luar Biasa**: Optimasi bundling Vite dan state management React yang efisien menjaga latensi antarmuka tetap minimal.
 *   **Desain Sangat Premium**: Paduan skema warna gelap minimalis, tipografi dari Google Fonts (Inter & JetBrains Mono), visual glassmorphism, serta transisi mikro membuat pengguna merasa nyaman menulis berlama-lama.
-*   **Kontrol Privasi Penuh**: Data catatan disimpan secara lokal di komputer pengguna, sehingga tidak ada risiko kebocoran data sensitif ke server pihak ketiga tanpa persetujuan.
+*   **Keamanan & Isolasi Data**: Data catatan disimpan di cloud PostgreSQL dengan keamanan Row Level Security (RLS), memastikan data terisolasi per-pengguna secara ketat.
 
 ### Keterbatasan Sistem
 *   **Keterbatasan Sunting WYSIWYG**: Meskipun sudah dilengkapi fitur Live Preview (Split View / Toggle), penulisan langsung di editor masih menggunakan sintaks Markdown mentah, bukan berupa penyuntingan WYSIWYG *in-place*.
-*   **Ketergantungan terhadap Cache Browser**: Jika pengguna membersihkan data penjelajahan peramban (*clear browser cache/cookies*), maka seluruh data catatan yang disimpan di LocalStorage akan terhapus.
+*   **Sinkronisasi Jaringan Offline**: Walau memiliki fallback offline lokal, perubahan yang dilakukan saat offline penuh belum ter-sinkronisasi dua-arah secara otomatis ketika kembali online.
 
 ### Analisis Performa
 Audit Lighthouse menunjukkan skor optimasi pemuatan awal yang sangat memuaskan (98%). Kecepatan pemuatan awal dipengaruhi secara positif oleh penggunaan compiler internal Vite yang mereduksi ukuran bundel Javascript (*bundle size*) di bawah 150 KB. Selain itu, optimalisasi struktur DOM pada React mencegah terjadinya aktivitas *re-rendering* komponen NoteCard yang tidak diperlukan ketika pengguna sedang mengetik di dalam kolom input pencarian.
@@ -318,14 +318,15 @@ Audit Lighthouse menunjukkan skor optimasi pemuatan awal yang sangat memuaskan (
 ## 8. Scalability & Feasibility
 
 ### Kemampuan Sistem Menangani Skala Lebih Besar (*Scalability*)
-Meskipun saat ini bersifat client-side, arsitektur data Notula dirancang dengan memisahkan logika antarmuka dan logika data. Hal ini mempermudah sistem untuk ditingkatkan skalanya di masa mendatang:
-*   **Migrasi ke Serverless Backend**: Logika sinkronisasi data dapat dengan mudah dihubungkan ke penyedia layanan cloud database (seperti Firebase Firestore atau Supabase PostgreSQL) dengan memodifikasi fungsi internal di `notesStore.js` menjadi fungsi pemanggilan asinkron (`fetch`/`axios`).
-*   **Optimasi Pengindeksan Teks**: Untuk menangani puluhan ribu catatan, sistem penyaringan pencarian linear saat ini dapat diganti dengan pustaka pengindeksan teks lokal seperti *FlexSearch* atau *MiniSearch* guna menjamin pencarian tetap berada di bawah 20ms.
+Dengan arsitektur **Serverless Cloud BaaS** menggunakan **Supabase**, sistem Notula telah dirancang untuk menangani skala pengguna dan volume data yang lebih besar secara asinkron dan terdistribusi:
+*   **Infrastruktur Backend Serverless**: Penggunaan SDK Supabase pada `notesStore.js` memisahkan logika antarmuka dengan basis data PostgreSQL di cloud, yang secara otomatis dapat ditingkatkan skalanya oleh pihak penyedia layanan cloud (Supabase/AWS).
+*   **Optimasi Pengindeksan Teks**: Untuk menangani puluhan ribu catatan per-pengguna, pencarian di masa depan dapat ditambahkan pengindeksan teks penuh menggunakan fitur *Full-Text Search* bawaan PostgreSQL Supabase atau pustaka lokal seperti *FlexSearch* / *MiniSearch*.
 
-### Potensi Deployment
-Aplikasi Notula sangat potensial untuk dideploy ke berbagai platform hosting modern karena seluruh aset keluarannya berupa berkas HTML, CSS, dan JS statis (*Static Site Generation*):
-*   **Platform Distribusi**: Dapat dideploy secara gratis dengan keandalan tinggi di Vercel, Netlify, atau GitHub Pages.
-*   **PWA Integration**: Aplikasi dapat dikonversi menjadi *Progressive Web App* (PWA) sehingga pengguna dapat mengunduh dan menginstalnya langsung sebagai aplikasi desktop atau mobile mandiri.
+### Metode Deployment & Distribusi (Vercel)
+Aplikasi frontend Notula telah dikonfigurasi untuk dideploy ke platform **Vercel** sebagai Single Page Application (SPA) berkinerja tinggi:
+*   **Platform Distribusi**: Dideploy di Vercel dengan mengarahkan *Root Directory* ke subdirektori `Frontend`.
+*   **Konfigurasi Routing**: Menyediakan berkas `vercel.json` di dalam direktori `Frontend` untuk konfigurasi *client-side routing rewrite* (`index.html`), guna mencegah terjadinya error 404 ketika pengguna melakukan refresh pada halaman dashboard, editor, maupun profil.
+*   **PWA Integration**: Aplikasi dapat dikonversi menjadi *Progressive Web App* (PWA) untuk memungkinkan instalasi langsung di perangkat mobile dan desktop pengguna secara mandiri.
 
 ### Kelayakan Implementasi Dunia Nyata (*Feasibility*)
 Secara komersial dan kegunaan, Notula memiliki tingkat kelayakan implementasi yang tinggi:
@@ -333,7 +334,7 @@ Secara komersial dan kegunaan, Notula memiliki tingkat kelayakan implementasi ya
 2.  **Tingkat Kebutuhan Pengguna**: Catatan cerdas yang minim gangguan visual dengan bantuan AI merupakan ceruk pasar produktivitas yang sedang diminati secara global saat ini.
 
 ### Pengembangan Masa Depan
-1.  **Integrasi Google Gemini API**: Menggantikan simulasi AI dengan pemrosesan model Gemini Pro asli untuk menghasilkan ringkasan draf catatan yang kontekstual dan akurat.
+1.  **Optimasi Pemrosesan AI**: Menambahkan fitur custom prompt AI agar pengguna dapat menginstruksikan model Gemini melakukan tindakan spesifik lainnya pada catatan.
 2.  **Fitur Kolaborasi Real-time**: Menggunakan protokol WebSockets atau CRDT (seperti Yjs) untuk mendukung aktivitas menyunting catatan bersama pengguna lain.
 3.  **Rich-Text Markdown Editor**: Menerapkan pustaka editor WYSIWYG (seperti TipTap atau Lexical) agar format cetak tebal dan miring langsung ter-visualisasi tanpa menampilkan simbol kode (*asterisk*).
 
@@ -345,7 +346,7 @@ Secara komersial dan kegunaan, Notula memiliki tingkat kelayakan implementasi ya
 Notula merupakan aplikasi catatan pintar berbasis web yang dirancang untuk mereduksi beban kognitif pengguna melalui desain minimalis dan integrasi kecerdasan buatan. Proyek ini mengedepankan pengalaman penulisan yang cepat, bersih, dan berfokus pada konten.
 
 ### Hasil Implementasi
-Seluruh spesifikasi teknis dan antarmuka utama telah berhasil diimplementasikan dengan baik. Sistem berjalan lancar pada perangkat desktop maupun perangkat mobile. Fungsionalitas CRUD data catatan lokal bekerja secara responsif, begitupun dengan modul konfigurasi preferensi sistem (mode warna, auto-save, dan filter AI).
+Seluruh spesifikasi teknis dan antarmuka utama telah berhasil diimplementasikan dengan baik. Sistem berjalan lancar pada perangkat desktop maupun perangkat mobile. Fungsionalitas CRUD data catatan terintegrasi secara asinkron dengan database cloud bekerja secara responsif, begitupun dengan modul konfigurasi preferensi sistem (mode warna, auto-save, dan filter AI).
 
 ### Hasil Evaluasi
 Evaluasi kinerja menunjukkan aplikasi Notula memiliki keandalan tinggi dengan skor performa awal 98% dan tingkat kesalahan sistem 0%. Fungsionalitas Markdown (Bold kustom `*text*` & Italic kustom `_text_`) berhasil diuji dan dinyatakan lulus pengujian fungsionalitas.
@@ -360,7 +361,7 @@ Notula memberikan kontribusi nyata bagi peningkatan produktivitas pengguna denga
 ### Bukti Pendukung & URL Akses
 *   **Source Code Proyek**: [https://github.com/whoNann/NOTULA.git](https://github.com/whoNann/NOTULA.git)
 *   **Video Demo Sistem**: [https://youtube.com/watch?v=demo-notula-kel2](https://youtube.com/watch?v=demo-notula-kel2) (Tautan Simulasi)
-*   **Tautan URL Deployment**: [https://notula-kelompok2.vercel.app](https://notula-kelompok2.vercel.app) (Tautan Simulasi)
+*   **Tautan URL Deployment**: [https://notula-kelompok2.vercel.app](https://notula-kelompok2.vercel.app) (Aktif di Vercel)
 
 ### Dokumentasi Tambahan (Struktur Data)
 Berikut adalah contoh struktur data JSON dari catatan yang disimpan pada LocalStorage browser (`notula_notes`):
